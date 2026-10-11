@@ -1,0 +1,375 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "highlight.js/styles/github.min.css";
+
+/*
+ * Appearance tokens — Light / Dark+ / High Contrast.
+ * RGB channels (space-separated) for Tailwind alpha support.
+ */
+:root,
+[data-theme="light"] {
+  --color-bg: 248 250 252; /* slate-50 */
+  --color-fg: 10 10 10;
+  --color-muted: 64 64 64;
+  --color-panel: 255 255 255;
+  --color-surface: 241 245 249; /* slate-100 */
+  --color-border: 226 232 240; /* slate-200 */
+  --color-accent: 99 102 241; /* indigo-500 */
+  --color-accent-bright: 129 140 248; /* indigo-400 */
+  --color-list-selected: 229 231 235; /* gray-200 */
+  --color-list-hover: 243 244 246; /* gray-100 */
+  --color-input-bg: 255 255 255;
+  --color-scrollbar: 148 163 184; /* slate-400 */
+  --color-scrollbar-hover: 100 116 139; /* slate-500 */
+}
+
+[data-theme="dark-plus"] {
+  /* VS Code Dark+–inspired */
+  --color-bg: 30 30 30; /* #1e1e1e */
+  --color-fg: 204 204 204; /* #cccccc */
+  --color-muted: 150 150 150; /* #969696 — readable on #1e1e1e */
+  --color-panel: 37 37 38; /* #252526 */
+  --color-surface: 45 45 45; /* #2d2d2d */
+  --color-border: 60 60 60; /* #3c3c3c */
+  --color-accent: 99 102 241;
+  --color-accent-bright: 129 140 248;
+  --color-list-selected: 55 55 61; /* #37373d */
+  --color-list-hover: 42 45 46; /* #2a2d2e */
+  --color-input-bg: 60 60 60;
+  --color-scrollbar: 90 90 90;
+  --color-scrollbar-hover: 120 120 120;
+}
+
+[data-theme="high-contrast"] {
+  --color-bg: 0 0 0;
+  --color-fg: 255 255 255;
+  --color-muted: 200 200 200;
+  --color-panel: 10 10 10;
+  --color-surface: 20 20 20;
+  /* Match other dividers — not pure white (was too harsh on activity/tree guides) */
+  --color-border: 60 60 60; /* same family as Dark+ #3c3c3c */
+  --color-accent: 55 148 255; /* high-contrast blue */
+  --color-accent-bright: 102 176 255;
+  --color-list-selected: 40 40 40;
+  --color-list-hover: 30 30 30;
+  --color-input-bg: 0 0 0;
+  --color-scrollbar: 180 180 180;
+  --color-scrollbar-hover: 220 220 220;
+}
+
+/* Case body code blocks: readable in dark mode */
+.dark .prose-rex pre code.hljs {
+  background: transparent;
+  color: #e2e8f0;
+}
+.dark .prose-rex .hljs-comment,
+.dark .prose-rex .hljs-quote {
+  color: #94a3b8;
+}
+.dark .prose-rex .hljs-keyword,
+.dark .prose-rex .hljs-selector-tag,
+.dark .prose-rex .hljs-meta .hljs-keyword {
+  color: #c4b5fd;
+}
+.dark .prose-rex .hljs-string,
+.dark .prose-rex .hljs-attr,
+.dark .prose-rex .hljs-symbol,
+.dark .prose-rex .hljs-bullet {
+  color: #86efac;
+}
+.dark .prose-rex .hljs-title,
+.dark .prose-rex .hljs-section,
+.dark .prose-rex .hljs-name {
+  color: #7dd3fc;
+}
+.dark .prose-rex .hljs-number,
+.dark .prose-rex .hljs-literal {
+  color: #fcd34d;
+}
+
+/* Visual Normal (TipTap) — match read-view prose rhythm */
+.visual-md-editor.ProseMirror {
+  min-height: 7.5rem;
+}
+.visual-md-editor.ProseMirror p {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.visual-md-editor.ProseMirror h1 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: rgb(2 6 23); /* slate-950 */
+}
+.visual-md-editor.ProseMirror h2 {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(2 6 23); /* slate-950 */
+}
+.visual-md-editor.ProseMirror h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgb(15 23 42); /* slate-900 */
+}
+.dark .visual-md-editor.ProseMirror h1 {
+  color: rgb(248 250 252); /* slate-50 */
+}
+.dark .visual-md-editor.ProseMirror h2 {
+  color: rgb(241 245 249); /* slate-100 */
+}
+.dark .visual-md-editor.ProseMirror h3 {
+  color: rgb(241 245 249); /* slate-100 */
+}
+.visual-md-editor.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+.visual-md-editor.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+.visual-md-editor.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.25rem;
+  margin: 0.5rem 0;
+}
+.visual-md-editor.ProseMirror ul[data-type="taskList"] > li {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+.visual-md-editor.ProseMirror ul[data-type="taskList"] > li > label {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.visual-md-editor.ProseMirror ul[data-type="taskList"] > li > label > input[type="checkbox"] {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin: 0;
+  cursor: pointer;
+  accent-color: rgb(99 102 241);
+}
+.visual-md-editor.ProseMirror ul[data-type="taskList"] > li > div {
+  flex: 1;
+  min-width: 0;
+}
+.visual-md-editor.ProseMirror ul[data-type="taskList"] > li > div > p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.visual-md-editor.ProseMirror ul[data-type="taskList"] > li[data-checked="true"] > div {
+  color: rgb(100 116 139);
+  text-decoration: line-through;
+}
+.dark .visual-md-editor.ProseMirror ul[data-type="taskList"] > li[data-checked="true"] > div {
+  color: rgb(148 163 184);
+}
+.visual-md-editor.ProseMirror blockquote {
+  margin: 0.75rem 0;
+  border-left: 4px solid rgb(129 140 248);
+  background: rgb(238 242 255 / 0.6);
+  padding: 0.625rem 0.75rem 0.625rem 1rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+.dark .visual-md-editor.ProseMirror blockquote {
+  border-left-color: rgb(99 102 241 / 0.6);
+  background: rgb(99 102 241 / 0.1);
+}
+.visual-md-editor.ProseMirror code {
+  border-radius: 0.25rem;
+  background: rgb(226 232 240 / 0.8);
+  padding: 0.125rem 0.375rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+}
+.dark .visual-md-editor.ProseMirror code {
+  background: rgb(51 65 85 / 0.6);
+}
+.visual-md-editor.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: rgb(148 163 184);
+}
+.dark .visual-md-editor.ProseMirror p.is-editor-empty:first-child::before {
+  color: rgb(100 116 139);
+}
+
+/* GFM tables in Normal mode — match View renderMarkdown table chrome */
+.visual-md-editor.ProseMirror .tableWrapper,
+.visual-md-editor.ProseMirror table.visual-md-table {
+  margin: 0.75rem 0;
+  overflow-x: auto;
+}
+.visual-md-editor.ProseMirror table.visual-md-table,
+.visual-md-editor.ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: #0a0a0a; /* ink */
+  border: 1px solid rgb(100 116 139); /* slate-500 */
+  border-radius: 0;
+}
+.dark .visual-md-editor.ProseMirror table.visual-md-table,
+.dark .visual-md-editor.ProseMirror table {
+  color: rgb(241 245 249); /* slate-100 */
+  border-color: rgb(100 116 139); /* slate-500 */
+}
+.visual-md-editor.ProseMirror th,
+.visual-md-editor.ProseMirror td {
+  border: 1px solid rgb(100 116 139); /* slate-500 */
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+  min-width: 3rem;
+}
+.dark .visual-md-editor.ProseMirror th,
+.dark .visual-md-editor.ProseMirror td {
+  border-color: rgb(100 116 139); /* slate-500 */
+}
+.visual-md-editor.ProseMirror th {
+  background: rgb(248 250 252);
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: #0a0a0a; /* ink */
+}
+.dark .visual-md-editor.ProseMirror th {
+  background: rgb(30 41 59 / 0.8);
+  color: rgb(241 245 249); /* slate-100 */
+}
+.visual-md-editor.ProseMirror td p,
+.visual-md-editor.ProseMirror th p {
+  margin: 0;
+}
+.visual-md-editor.ProseMirror .selectedCell::after {
+  background: rgb(99 102 241 / 0.12);
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+/* TipTap table structure floating bar (portal; keep above sticky editor chrome) */
+.visual-md-table-float {
+  z-index: 50;
+}
+
+/* Single-page shell: prevent document scroll (nested panels already scroll). Avoids double
+   scrollbars on Dashboard / tree views and reduces overscroll revealing the viewport edge. */
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  @apply bg-app text-ink antialiased;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* macOS overlay title bar: drag region under native traffic lights. */
+.app-titlebar {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.app-titlebar-drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.app-titlebar button {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+@keyframes data-flash {
+  0% { background-color: transparent; }
+  30% { background-color: rgb(59 130 246 / 0.08); }
+  100% { background-color: transparent; }
+}
+
+.animate-data-flash {
+  animation: data-flash 0.5s ease-out;
+}
+
+@keyframes dropdown-enter {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-dropdown-enter {
+  animation: dropdown-enter 0.15s ease-out forwards;
+}
+
+/* Detail drawer: overlay fade-in */
+@keyframes overlay-fadein {
+  from { background-color: rgba(0, 0, 0, 0); }
+  to   { background-color: rgba(0, 0, 0, 0.4); }
+}
+.animate-overlay-fadein {
+  animation: overlay-fadein 0.2s ease-out forwards;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+/* Detail drawer: panel slide-in from right */
+@keyframes drawer-slidein {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.animate-drawer-slidein {
+  animation: drawer-slidein 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Thin, modern scrollbar for main content and test list */
+.main-content-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-scrollbar)) transparent;
+}
+
+.main-content-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.main-content-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main-content-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-scrollbar));
+  border-radius: 4px;
+}
+
+.main-content-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--color-scrollbar-hover));
+}

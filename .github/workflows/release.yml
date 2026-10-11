@@ -1,0 +1,227 @@
+# Build Gitoza (Tauri 2) desktop releases and upload to Cloudflare R2.
+#
+# Trigger: push a version tag starting with "v" (e.g. v1.0.0, v1.0.0-rc.2).
+#
+# Version: CI sets src-tauri/tauri.conf.json from the tag (v1.0.0-rc.2 → 1.0.0-rc.2).
+#   Local dev uses placeholder 0.0.0-dev in git; no manual version bump before tagging.
+#
+# Bundles: Windows NSIS (*-setup.exe), macOS aarch64 (.dmg + .app.tar.gz),
+#   Linux x86_64 AppImage (*.AppImage + .AppImage.sig). No MSI.
+#
+# R2 channels (tag name contains "-rc" → rc/, otherwise → stable/):
+#   Stable (v1.0.0):     s3://gitoza-releases/stable/v1.0.0/
+#   RC (v1.0.0-rc.2):    s3://gitoza-releases/rc/v1.0.0-rc.2/
+#
+# After R2 upload, each matrix job writes a per-platform manifest to _meta/.
+# register-release downloads those manifests from R2 and POSTs metadata to the
+# license server webhook (stable and RC channels). See docs/arch/release_build/WEBHOOK.md.
+#
+# Self-hosted runners keep Rust artifacts outside the workspace (CARGO_TARGET_DIR) so
+# actions/checkout can still clean the repo without wiping the compile cache.
+# CARGO_INCREMENTAL=1; no GitHub Actions Rust cache.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   R2_ACCESS_KEY_ID                        — Cloudflare R2 API token access key ID
+#   R2_SECRET_ACCESS_KEY                    — Cloudflare R2 API token secret access key
+#   R2_ENDPOINT_URL                         — S3 endpoint, e.g. https://<account_id>.r2.cloudflarestorage.com
+#   TAURI_SIGNING_PRIVATE_KEY               — from `npm run tauri signer generate` (full key content)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD      — password used when generating the key
+#   LICENSE_SERVER_RELEASE_WEBHOOK_URL      — POST URL (e.g. …/internal/releases/register)
+#   LICENSE_SERVER_RELEASE_WEBHOOK_SECRET   — value for X-Gitoza-Release-Webhook-Secret header
+#
+# macOS notarization (macOS matrix job only; Tauri notarytool via App Store Connect API):
+#   APPLE_API_ISSUER                        — Issuer ID from App Store Connect → Integrations → Keys
+#   APPLE_API_KEY                           — Key ID (10-char ID from the Keys table)
+#   APPLE_API_PRIVATE_KEY                   — full AuthKey_<KEY_ID>.p8 PEM contents (written to a temp file at build time)
+#
+# Release: git tag vX.Y.Z && git push origin vX.Y.Z
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            runner: [self-hosted, Windows, X64]
+            shell: cmd
+            args: ''
+            bundle_subpath: release/bundle
+          - platform: macos
+            runner: [self-hosted, macOS, ARM64]
+            shell: bash
+            args: '--target aarch64-apple-darwin'
+            bundle_subpath: aarch64-apple-darwin/release/bundle
+          - platform: linux
+            runner: [self-hosted, X64, Linux]
+            shell: bash
+            args: ''
+            bundle_subpath: release/bundle
+
+    runs-on: ${{ matrix.runner }}
+
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Set app version from tag
+        run: node .github/scripts/set-app-version-from-tag.mjs
+
+      - name: Set Cargo target directory (Windows)
+        if: matrix.platform == 'windows'
+        run: |
+          echo CARGO_TARGET_DIR=C:\cargo-target-gittestlens>>%GITHUB_ENV%
+          echo BUNDLE_ROOT=C:\cargo-target-gittestlens\${{ matrix.bundle_subpath }}>>%GITHUB_ENV%
+
+      - name: Set Cargo target directory (Unix)
+        if: matrix.platform != 'windows'
+        shell: bash
+        run: |
+          case "${{ matrix.platform }}" in
+            macos) cargo_dir="/Users/gitoza/cargo-target-gittestlens" ;;
+            linux) cargo_dir="${HOME}/cargo-target-gittestlens" ;;
+          esac
+          echo "CARGO_TARGET_DIR=${cargo_dir}" >> "$GITHUB_ENV"
+          echo "BUNDLE_ROOT=${cargo_dir}/${{ matrix.bundle_subpath }}" >> "$GITHUB_ENV"
+
+      - name: Install Rust stable
+        if: matrix.platform != 'windows'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos' && 'aarch64-apple-darwin' || '' }}
+
+      - name: Install Rust stable (Windows)
+        if: matrix.platform == 'windows'
+        run: call .github\scripts\ensure-rust-windows.cmd
+
+      - name: Install root npm dependencies
+        run: npm install
+
+      - name: Install frontend npm dependencies
+        run: npm install --prefix frontend
+
+      - name: Prepare Apple notarization API key
+        if: matrix.platform == 'macos'
+        shell: bash
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          key_dir="${RUNNER_TEMP}/apple-notary"
+          mkdir -p "$key_dir"
+          key_path="${key_dir}/AuthKey_${APPLE_API_KEY}.p8"
+          printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$key_path"
+          chmod 600 "$key_path"
+          echo "APPLE_API_KEY_PATH=${key_path}" >> "$GITHUB_ENV"
+
+      - name: Build Tauri app
+        run: npm run tauri -- build ${{ matrix.args }}
+        env:
+          CARGO_TARGET_DIR: ${{ env.CARGO_TARGET_DIR }}
+          CARGO_INCREMENTAL: "1"
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_BUNDLER_DMG_IGNORE_CI: ${{ matrix.platform == 'macos' && 'true' || '' }}
+          APPLE_API_ISSUER: ${{ matrix.platform == 'macos' && secrets.APPLE_API_ISSUER || '' }}
+          APPLE_API_KEY: ${{ matrix.platform == 'macos' && secrets.APPLE_API_KEY || '' }}
+
+      - name: Verify macOS notarization
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_path=$(find "$BUNDLE_ROOT/macos" -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$app_path"
+          spctl -a -vv -t execute "$app_path"
+          xcrun stapler validate "$app_path"
+          dmg_path=$(find "$BUNDLE_ROOT/macos" -maxdepth 1 -name '*.dmg' -print -quit)
+          if [ -n "$dmg_path" ]; then xcrun stapler validate "$dmg_path"; fi
+
+      - name: Stage release artifacts
+        run: node .github/scripts/stage-release-artifacts.mjs "${{ env.BUNDLE_ROOT }}"
+
+      - name: Set R2 channel prefix
+        id: r2_channel
+        run: node .github/scripts/set-r2-channel-prefix.mjs
+
+      - name: Install GitHub script dependencies
+        run: npm install --prefix .github/scripts
+
+      - name: Upload to Cloudflare R2
+        run: >
+          node .github/scripts/upload-release-assets-to-r2.mjs release-assets
+          "s3://gitoza-releases/${{ steps.r2_channel.outputs.prefix }}/${{ github.ref_name }}/"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+
+      - name: Build and upload platform manifest to R2
+        run: >
+          node .github/scripts/build-and-upload-platform-manifest.mjs release-assets
+          ${{ matrix.platform }}
+          "s3://gitoza-releases/${{ steps.r2_channel.outputs.prefix }}/${{ github.ref_name }}/"
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+
+  register-release:
+    needs: release
+    if: success()
+    runs-on: [self-hosted, X64, Linux]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set R2 channel prefix
+        id: r2_channel
+        run: node .github/scripts/set-r2-channel-prefix.mjs
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Setup Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install GitHub script dependencies
+        run: npm install --prefix .github/scripts
+
+      - name: Download release manifests from R2
+        run: >
+          node .github/scripts/download-release-manifests-from-r2.mjs manifests
+          "s3://gitoza-releases/${{ steps.r2_channel.outputs.prefix }}/${{ github.ref_name }}/"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+
+      - name: Build webhook payload and POST
+        run: node .github/scripts/register-release.mjs
+        env:
+          LICENSE_SERVER_RELEASE_WEBHOOK_URL: ${{ secrets.LICENSE_SERVER_RELEASE_WEBHOOK_URL }}
+          LICENSE_SERVER_RELEASE_WEBHOOK_SECRET: ${{ secrets.LICENSE_SERVER_RELEASE_WEBHOOK_SECRET }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}

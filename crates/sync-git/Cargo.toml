@@ -1,0 +1,17 @@
+[package]
+name = "sync-git"
+version = "0.1.0"
+license.workspace = true
+edition = "2021"
+description = "Low-level Git CLI spawning, SSH shim, and porcelain parsing for Gitoza"
+
+[lib]
+name = "sync_git"
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "time", "sync"] }
+
+[dev-dependencies]
+tempfile = "3"

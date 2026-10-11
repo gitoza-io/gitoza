@@ -1,0 +1,18 @@
+[package]
+name = "sync-engine"
+version = "0.1.0"
+license.workspace = true
+edition = "2021"
+description = "Single-branch publish / recover / conflict workflow on top of sync-git"
+
+[lib]
+name = "sync_engine"
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1"
+sync-git = { path = "../sync-git" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "time", "sync", "fs"] }
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <rect width="60" height="60" rx="16" fill="#6366f1" />
+  <text
+    x="30"
+    y="27"
+    dominant-baseline="middle"
+    text-anchor="middle"
+    fill="#fff"
+    font-family="Inter, system-ui, sans-serif"
+    font-size="42"
+    font-weight="800"
+    style="letter-spacing: -0.5px; line-height: 1"
+  >
+    g
+  </text>
+</svg>

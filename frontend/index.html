@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title></title>
+    <script>
+      (function () {
+        try {
+          // Legacy localStorage key (product name is Gitoza).
+          var key = "git-test-lens-theme";
+          var raw = localStorage.getItem(key);
+          var theme =
+            raw === "dark" || raw === "dark-plus"
+              ? "dark-plus"
+              : raw === "high-contrast"
+                ? "high-contrast"
+                : raw === "light"
+                  ? "light"
+                  : window.matchMedia("(prefers-color-scheme: dark)").matches
+                    ? "dark-plus"
+                    : "light";
+          document.documentElement.dataset.theme = theme;
+          if (theme !== "light") document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-app text-ink">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

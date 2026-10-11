@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/sync-git",
+    "crates/sync-engine",
+    "rust-backend",
+    "src-tauri",
+]
+
+[workspace.package]
+license = "Apache-2.0"

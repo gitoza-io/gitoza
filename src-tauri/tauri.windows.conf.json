@@ -1,0 +1,15 @@
+{
+  "bundle": {
+    "homepage": "https://gitoza.com",
+    "shortDescription": "Test management for Git repositories",
+    "publisher": "Gitoza",
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "currentUser",
+        "startMenuFolder": "Gitoza",
+        "template": "windows/installer.nsi"
+      }
+    }
+  }
+}

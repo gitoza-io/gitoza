@@ -1,0 +1,50 @@
+# macOS
+.DS_Store
+
+# Rust / Cargo (build artifacts — keep root Cargo.toml / Cargo.lock tracked)
+target/
+/rust-backend/Cargo.lock
+/src-tauri/Cargo.lock
+/src-tauri/gen/
+
+# Frontend / Node
+frontend/node_modules/
+node_modules/
+frontend/dist/
+dist/
+
+# CI / local release staging (installers before R2 upload)
+release-assets/
+
+# Logs & local runtime noise
+logs/
+*.log
+
+# Local env / secrets (never commit)
+.env
+.env.*
+!.env.example
+
+# Cursor (local agent/debug; plans removed from repo on open-source cleanup)
+.cursor/
+
+# E2E artifacts
+test-results/
+frontend/test-results/
+
+# Coverage & misc tooling
+coverage/
+.nyc_output/
+
+# Editor / IDE (local)
+.idea/
+*.swp
+*.swo
+*~
+
+# Release docs scratch (per-version changelogs under docs/releases/ are tracked)
+docs/releases/reddit-*.html
+
+# Tauri: mobile icon sets from `tauri icon` (desktop-only app; regenerate when adding iOS/Android)
+src-tauri/icons/ios/
+src-tauri/icons/android/
