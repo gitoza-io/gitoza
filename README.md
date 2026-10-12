@@ -2,20 +2,22 @@
 
 **Gitoza** is a local-first desktop app for **test management** and **task tracking as files in Git** (Task-as-Code + Test-as-Code). Tickets, wiki pages, test cases, and test runs live as YAML in your repository; the app runs on your machine—there is no central cloud database for that data.
 
-Built for QA and engineering teams who want planning and verification in the same Git workflow, with tickets linked to cases and runs. Teammates share work on branch **`gitoza`**: hit **Sync**, review changes like an IDE diff, then confirm. Git fetch, rebase, and push run in the background—no Git knowledge required. Overlapping edits pause for **Keep mine** / **Keep shared version**.
+![Gitoza — tickets, wiki, and tests linked together](https://assets.gitoza.com/demos/readme-hero.gif)
 
-**[Watch overview — tickets, wiki, and tests linked together →](https://assets.gitoza.com/demos/gitoza-task-test-v2.mp4)**
+Built for QA and engineering teams who want planning and verification in the same Git workflow, with tickets linked to cases and runs. Teammates share work on branch `gitoza`: hit **Sync**, review changes like an IDE diff, then confirm. Git fetch, rebase, and push run in the background—no Git knowledge required. Overlapping edits pause for **Keep mine** / **Keep shared version**.
 
 ## Download
 
 - **Installers (recommended):** [gitoza.com](https://gitoza.com) — Windows, macOS, and Linux builds served from the official CDN.
 - **Source:** this repository (see [Build from source](#build-from-source) below). GitHub Releases may mirror the same artifacts when published.
 
+
+
 ## Generate tickets and cases with AI
 
 Copy the workspace path from Gitoza, open the repo in an AI coding agent, and generate tickets and test cases from your code.
 
-[![Generate tickets and test cases with an AI agent from a Gitoza workspace](https://assets.gitoza.com/demos/ai-agent-gitoza-demo.webp)](https://www.youtube.com/watch?v=UZwE5e0RM-A)
+![Generate tickets and test cases with an AI agent from a Gitoza workspace](https://assets.gitoza.com/demos/ai-generate-tickets.gif)
 
 [Watch on YouTube](https://www.youtube.com/watch?v=UZwE5e0RM-A)
 
@@ -41,6 +43,8 @@ Everything you edit is stored as files in your repository. Sync publishes those 
 - **Dashboard & search** — Project overview and filters
 - **Import / export** — CSV import and case/run export from the app
 
+
+
 ## Team sync
 
 You do not need to use Git yourself. Hit **Sync**, review the changelist like an IDE diff, then confirm. The app publishes to branch `gitoza` in the background.
@@ -60,23 +64,29 @@ flowchart LR
   Continue --> Done
 ```
 
+
+
+
+
 ## Where your data lives
 
 - **On your machine:** settings and a local index under `~/.gitoza`
-- **In your Git repo** (branch **`gitoza`**): shared files under `.gitoza/`
+- **In your Git repo** (branch `gitoza`): shared files under `.gitoza/`
 
-| In the repo | What |
-|-------------|------|
-| `.gitoza/tasks/tickets/<project>/…` | Tickets and releases |
-| `.gitoza/wiki/…` | Wiki pages (nested folders) |
-| `.gitoza/test/cases/<project>/…/<case_id>.yaml` | Test cases |
-| `.gitoza/test/runs/<run_id>/` | Test runs |
-| `.gitoza/test/templates/*.md` | Case templates |
-| `.gitoza/config.json` | Team project settings |
 
-Task and test data stay on the dedicated **`gitoza`** branch (or a dedicated repo that uses that branch). You do not merge them into your code mainline—so tickets, wiki, and tests never pollute application source.
+| In the repo                                     | What                        |
+| ----------------------------------------------- | --------------------------- |
+| `.gitoza/tasks/tickets/<project>/…`             | Tickets and releases        |
+| `.gitoza/wiki/…`                                | Wiki pages (nested folders) |
+| `.gitoza/test/cases/<project>/…/<case_id>.yaml` | Test cases                  |
+| `.gitoza/test/runs/<run_id>/`                   | Test runs                   |
+| `.gitoza/test/templates/*.md`                   | Case templates              |
+| `.gitoza/config.json`                           | Team project settings       |
 
-More detail: [`docs/DATA-LAYOUT.md`](docs/DATA-LAYOUT.md).
+
+Task and test data stay on the dedicated `gitoza` branch (or a dedicated repo that uses that branch). You do not merge them into your code mainline—so tickets, wiki, and tests never pollute application source.
+
+More detail: `[docs/DATA-LAYOUT.md](docs/DATA-LAYOUT.md)`.
 
 ## Feedback
 
@@ -103,4 +113,4 @@ npm run tauri:dev
 
 Production build: `npm run tauri:build`.
 
-Internals and architecture: [`docs/README.md`](docs/README.md).
+Internals and architecture: `[docs/README.md](docs/README.md)`.
