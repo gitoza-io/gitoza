@@ -48,3 +48,4 @@ docs/releases/reddit-*.html
 # Tauri: mobile icon sets from `tauri icon` (desktop-only app; regenerate when adding iOS/Android)
 src-tauri/icons/ios/
 src-tauri/icons/android/
+.tmp-media/
