@@ -4,17 +4,7 @@
 
 Built for QA and engineering teams who want planning and verification in the same Git workflow, with tickets linked to cases and runs. Teammates share work on branch **`gitoza`**: hit **Sync**, review changes like an IDE diff, then confirm. Git fetch, rebase, and push run in the background—no Git knowledge required. Overlapping edits pause for **Keep mine** / **Keep shared version**.
 
-<video
-  src="https://assets.gitoza.com/demos/gitoza-task-test-v2.mp4"
-  width="100%"
-  controls
-  playsinline
-  preload="metadata"
->
-  <a href="https://assets.gitoza.com/demos/gitoza-task-test-v2.mp4">Watch: navigate tickets, wiki, and tests in Gitoza</a>
-</video>
-
-If the player does not load, [watch the overview](https://assets.gitoza.com/demos/gitoza-task-test-v2.mp4).
+**[Watch overview — tickets, wiki, and tests linked together →](https://assets.gitoza.com/demos/gitoza-task-test-v2.mp4)**
 
 ## Download
 
@@ -25,24 +15,9 @@ If the player does not load, [watch the overview](https://assets.gitoza.com/demo
 
 Copy the workspace path from Gitoza, open the repo in an AI coding agent, and generate tickets and test cases from your code.
 
-<video
-  src="https://assets.gitoza.com/demos/ai-agent-gitoza-demo.mp4"
-  poster="https://assets.gitoza.com/demos/ai-agent-gitoza-demo.webp"
-  width="100%"
-  controls
-  playsinline
-  preload="metadata"
->
-  <a href="https://www.youtube.com/watch?v=UZwE5e0RM-A">
-    <img
-      src="https://assets.gitoza.com/demos/ai-agent-gitoza-demo.webp"
-      alt="Generate tickets and test cases with an AI agent from a Gitoza workspace"
-      width="100%"
-    />
-  </a>
-</video>
+[![Generate tickets and test cases with an AI agent from a Gitoza workspace](https://assets.gitoza.com/demos/ai-agent-gitoza-demo.webp)](https://www.youtube.com/watch?v=UZwE5e0RM-A)
 
-If the player does not load, [watch on YouTube](https://www.youtube.com/watch?v=UZwE5e0RM-A).
+[Watch on YouTube](https://www.youtube.com/watch?v=UZwE5e0RM-A)
 
 ## Getting started
 
