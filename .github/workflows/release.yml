@@ -16,6 +16,9 @@
 # register-release downloads those manifests from R2 and POSTs metadata to the
 # license server webhook (stable and RC channels). See docs/arch/release_build/WEBHOOK.md.
 #
+# Stable tags (no "-rc" in the name) also run github-release: download installers
+# from R2 and publish/update a public GitHub Release. RC tags do not.
+#
 # Self-hosted runners keep Rust artifacts outside the workspace (CARGO_TARGET_DIR) so
 # actions/checkout can still clean the repo without wiping the compile cache.
 # CARGO_INCREMENTAL=1; no GitHub Actions Rust cache.
@@ -225,3 +228,73 @@ jobs:
           LICENSE_SERVER_RELEASE_WEBHOOK_URL: ${{ secrets.LICENSE_SERVER_RELEASE_WEBHOOK_URL }}
           LICENSE_SERVER_RELEASE_WEBHOOK_SECRET: ${{ secrets.LICENSE_SERVER_RELEASE_WEBHOOK_SECRET }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
+
+  # Stable tags only: mirror end-user installers to a public GitHub Release.
+  # RC tags stay on private R2 (no GitHub Release).
+  github-release:
+    needs: release
+    if: success() && !contains(github.ref_name, '-rc')
+    runs-on: [self-hosted, X64, Linux]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set R2 channel prefix
+        id: r2_channel
+        run: node .github/scripts/set-r2-channel-prefix.mjs
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Setup Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install GitHub script dependencies
+        run: npm install --prefix .github/scripts
+
+      - name: Download installers from R2
+        run: >
+          node .github/scripts/download-github-release-assets-from-r2.mjs gh-release-assets
+          "s3://gitoza-releases/${{ steps.r2_channel.outputs.prefix }}/${{ github.ref_name }}/"
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          notes_file="$(mktemp)"
+          {
+            echo "Desktop installers for **Gitoza ${version}**."
+            echo
+            echo "Recommended download: [gitoza.com](https://gitoza.com) (CDN)."
+            echo "This GitHub Release mirrors the same stable installers."
+            echo
+            changelog="docs/releases/changelog-v${version}.md"
+            if [ -f "$changelog" ]; then
+              echo "### Changelog"
+              echo
+              echo "See [\`${changelog}\`](${changelog}) in the repository."
+            fi
+          } > "$notes_file"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" gh-release-assets/* --clobber
+            gh release edit "$TAG" --title "Gitoza ${version}" --notes-file "$notes_file" --prerelease=false
+          else
+            gh release create "$TAG" gh-release-assets/* \
+              --title "Gitoza ${version}" \
+              --notes-file "$notes_file" \
+              --latest=true
+          fi

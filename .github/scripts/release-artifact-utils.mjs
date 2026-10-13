@@ -106,3 +106,26 @@ export function validateReleaseAssetNames(names, version) {
     );
   }
 }
+
+/**
+ * End-user installers for GitHub Releases (not updater .app.tar.gz).
+ * @param {string} name
+ * @param {string} version
+ */
+export function isGitHubReleaseInstallerAsset(name, version) {
+  if (!matchesReleaseVersion(name, version)) return false;
+  if (/\.app\.tar\.gz(\.sig)?$/i.test(name)) return false;
+  return (
+    /-setup\.exe(\.sig)?$/i.test(name) ||
+    /\.dmg(\.sig)?$/i.test(name) ||
+    /\.AppImage(\.sig)?$/i.test(name)
+  );
+}
+
+/** @param {string} name */
+export function githubReleaseInstallerPlatformFamily(name) {
+  if (/-setup\.exe(\.sig)?$/i.test(name)) return 'windows';
+  if (/\.dmg(\.sig)?$/i.test(name)) return 'darwin';
+  if (/\.AppImage(\.sig)?$/i.test(name)) return 'linux';
+  return null;
+}

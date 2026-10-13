@@ -9,7 +9,8 @@ Built for QA and engineering teams who want planning and verification in the sam
 ## Download
 
 - **Installers (recommended):** [gitoza.com](https://gitoza.com) — Windows, macOS, and Linux builds served from the official CDN.
-- **Source:** this repository (see [Build from source](#build-from-source) below). GitHub Releases may mirror the same artifacts when published.
+- **GitHub Releases:** Stable tags also publish the same installers on [GitHub Releases](https://github.com/gitoza-io/gitoza/releases) (RC builds are not published there).
+- **Source:** this repository (see [Build from source](#build-from-source) below).
 
 
 

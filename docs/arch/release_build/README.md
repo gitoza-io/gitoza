@@ -41,6 +41,7 @@ flowchart TD
   channel -->|yes| rc["s3://gitoza-releases/rc/tag/"]
   channel -->|no| stable["s3://gitoza-releases/stable/tag/"]
   stable --> cdn["Public CDN stable/* only"]
+  stable --> ghRel["GitHub Release installers"]
   rc --> private["Private R2 QA access"]
   cdn --> manifest["License server manifest URLs"]
   stage --> meta["Upload _meta/target.json per platform"]
@@ -49,6 +50,8 @@ flowchart TD
 ```
 
 All matrix jobs upload into the **same** R2 prefix for a given tag; Windows, macOS, and Linux artifacts do not overwrite each other.
+
+**GitHub Releases (stable only):** After the matrix succeeds, job `github-release` downloads end-user installers (`.exe` / `.dmg` / `.AppImage` + `.sig`) from the stable R2 prefix and creates or updates a public [GitHub Release](https://github.com/gitoza-io/gitoza/releases) for that tag. Tags containing `-rc` skip this job. Updater-only `.app.tar.gz` bundles are not attached. CDN/`gitoza.com` remains the recommended download path; GitHub is a mirror.
 
 ---
 
@@ -216,9 +219,9 @@ No commit to bump `tauri.conf.json` is required — CI derives the app version f
 
 | Channel | Actions |
 |---------|---------|
-| **RC** | Verify R2 under `rc/<tag>/`. Webhook registers `channel: rc`. Confirm `GET /updates/rc/...` returns presigned URLs for rc→rc updates. |
-| **Stable** | Verify R2 under `stable/<tag>/`. Webhook registers `channel: stable`. Confirm `GET /updates/stable/...` returns presigned URLs for new version. |
-| **macOS (either channel)** | Download `.dmg` from R2; double-click install on a clean Mac — no Gatekeeper “damaged” warning. Optional: `spctl -a -vv -t install /Applications/Gitoza.app` should report `source=Notarized Developer ID`. |
+| **RC** | Verify R2 under `rc/<tag>/`. Webhook registers `channel: rc`. Confirm `GET /updates/rc/...` returns presigned URLs for rc→rc updates. No GitHub Release. |
+| **Stable** | Verify R2 under `stable/<tag>/`. Webhook registers `channel: stable`. Confirm `GET /updates/stable/...` returns presigned URLs for new version. Confirm [GitHub Releases](https://github.com/gitoza-io/gitoza/releases) lists the tag with `.exe` / `.dmg` / `.AppImage`. |
+| **macOS (either channel)** | Download `.dmg` from R2 (or GitHub for stable); double-click install on a clean Mac — no Gatekeeper “damaged” warning. Optional: `spctl -a -vv -t install /Applications/Gitoza.app` should report `source=Notarized Developer ID`. |
 
 Manual DB edits are only needed if `register-release` failed or the license server endpoint is not deployed yet.
 
