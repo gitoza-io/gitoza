@@ -5,17 +5,17 @@ import {
   isGitHubReleaseInstallerAsset,
 } from './release-artifact-utils.mjs';
 
-test('accepts versioned installers and companion sigs', () => {
+test('accepts versioned installers only (no sigs)', () => {
   const v = '2.0.0';
   assert.equal(isGitHubReleaseInstallerAsset(`Gitoza_${v}_x64-setup.exe`, v), true);
-  assert.equal(isGitHubReleaseInstallerAsset(`Gitoza_${v}_x64-setup.exe.sig`, v), true);
   assert.equal(isGitHubReleaseInstallerAsset(`Gitoza_${v}_aarch64.dmg`, v), true);
   assert.equal(isGitHubReleaseInstallerAsset(`Gitoza_${v}_amd64.AppImage`, v), true);
-  assert.equal(isGitHubReleaseInstallerAsset(`Gitoza_${v}_amd64.AppImage.sig`, v), true);
 });
 
-test('rejects updater bundles, wrong version, and unrelated files', () => {
+test('rejects sigs, updater bundles, wrong version, and unrelated files', () => {
   const v = '2.0.0';
+  assert.equal(isGitHubReleaseInstallerAsset(`Gitoza_${v}_x64-setup.exe.sig`, v), false);
+  assert.equal(isGitHubReleaseInstallerAsset(`Gitoza_${v}_amd64.AppImage.sig`, v), false);
   assert.equal(isGitHubReleaseInstallerAsset(`Gitoza_${v}_aarch64.app.tar.gz`, v), false);
   assert.equal(isGitHubReleaseInstallerAsset(`Gitoza_${v}_aarch64.app.tar.gz.sig`, v), false);
   assert.equal(isGitHubReleaseInstallerAsset('Gitoza_1.1.7_x64-setup.exe', v), false);

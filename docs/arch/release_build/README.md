@@ -51,7 +51,7 @@ flowchart TD
 
 All matrix jobs upload into the **same** R2 prefix for a given tag; Windows, macOS, and Linux artifacts do not overwrite each other.
 
-**GitHub Releases (stable only):** After the matrix succeeds, job `github-release` downloads end-user installers (`.exe` / `.dmg` / `.AppImage` + `.sig`) from the stable R2 prefix and creates or updates a public [GitHub Release](https://github.com/gitoza-io/gitoza/releases) for that tag. Tags containing `-rc` skip this job. Updater-only `.app.tar.gz` bundles are not attached. CDN/`gitoza.com` remains the recommended download path; GitHub is a mirror.
+**GitHub Releases (stable only):** After the matrix succeeds, job `github-release` downloads end-user installers (`.exe` / `.dmg` / `.AppImage` only) from the stable R2 prefix and creates or updates a public [GitHub Release](https://github.com/gitoza-io/gitoza/releases) for that tag. Tags containing `-rc` skip this job. Updater `.sig` / `.app.tar.gz` stay on R2 only. CDN/`gitoza.com` remains the recommended download path; GitHub is a mirror.
 
 ---
 
