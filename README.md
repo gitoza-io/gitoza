@@ -1,8 +1,13 @@
 # Gitoza
 
-**Gitoza** is a local-first desktop app for **test management** and **task tracking as files in Git** (Task-as-Code + Test-as-Code). Tickets, wiki pages, test cases, and test runs live as YAML in your repository; the app runs on your machine—there is no central cloud database for that data.
+![GitHub stars](https://img.shields.io/github/stars/gitoza-io/gitoza?style=for-the-badge)
+![Latest release](https://img.shields.io/github/v/release/gitoza-io/gitoza?style=for-the-badge)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=for-the-badge)
+![Download](https://img.shields.io/badge/download-gitoza.com-0A7C5A?style=for-the-badge)
 
-![Gitoza — tickets, wiki, and tests linked together](https://assets.gitoza.com/demos/readme-hero.gif)
+**Gitoza** is a local-first desktop app for **test management** and **task tracking as files in Git** (Task-as-Code + Test-as-Code). Tickets, wiki pages, test cases, and test runs live as Markdown with YAML frontmatter in your repository; the app runs on your machine—there is no central cloud database for that data.
+
+![Gitoza — execute test cases in a suite with case preview](https://assets.gitoza.com/demos/readme-test-run-suite.gif)
 
 Built for QA and engineering teams who want planning and verification in the same Git workflow, with tickets linked to cases and runs. Teammates share work on branch `gitoza`: hit **Sync**, review changes like an IDE diff, then confirm. Git fetch, rebase, and push run in the background—no Git knowledge required. Overlapping edits pause for **Keep mine** / **Keep shared version**.
 
@@ -13,6 +18,12 @@ Built for QA and engineering teams who want planning and verification in the sam
 - **Source:** this repository (see [Build from source](#build-from-source) below).
 
 
+
+## Link tickets, wiki, and tests
+
+Tickets, wiki pages, and test cases stay connected in one Git workflow—open a case, jump to linked work, and keep planning next to verification.
+
+![Gitoza — tickets, wiki, and tests linked together](https://assets.gitoza.com/demos/readme-hero.gif)
 
 ## Generate tickets and cases with AI
 
