@@ -74,7 +74,7 @@ pub(crate) fn discover_ticket_yaml_rel_paths(repo_path: &Path) -> Vec<String> {
                 .and_then(|s| s.to_str())
                 .unwrap_or("")
                 .to_ascii_lowercase();
-            if ext != "yaml" && ext != "yml" {
+            if ext != "md" {
                 continue;
             }
             out.push(file_rel_from_repo(repo_path, &p));
@@ -101,10 +101,10 @@ pub(crate) fn is_ticket_yaml_path(file_rel: &str) -> bool {
         .and_then(|s| s.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
-    ext == "yaml" || ext == "yml"
+    ext == "md"
 }
 
-/// One-level project paths: `.gitoza/tasks/tickets/{project}/{id}.yaml`.
+/// One-level project paths: `.gitoza/tasks/tickets/{project}/{id}.md`.
 pub(crate) fn validate_ticket_file_path_for_write(file_path: &str) -> Result<String, String> {
     let file_path = file_path.trim_start_matches('/').trim().replace('\\', "/");
     if file_path.is_empty() || file_path.contains("..") || file_path.starts_with('/') {
@@ -133,8 +133,8 @@ pub(crate) fn validate_ticket_file_path_for_write(file_path: &str) -> Result<Str
         );
     }
     let lower = file_name.to_ascii_lowercase();
-    if !(lower.ends_with(".yaml") || lower.ends_with(".yml")) {
-        return Err("Ticket file must be .yaml or .yml".to_string());
+    if !(lower.ends_with(".md") || lower.ends_with(".md")) {
+        return Err("Ticket file must be .md".to_string());
     }
     Ok(file_path)
 }
@@ -196,7 +196,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_ticket_projects_prefix
     Ok(())
 }
 
-pub(crate) const PROJECT_META_FILE: &str = ".project.yaml";
+pub(crate) use crate::paths::PROJECT_META_FILE;
 
 const TICKET_ID_ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -333,7 +333,16 @@ pub(crate) fn ticket_project_display_name(folder_name: &str) -> String {
 pub(crate) fn read_project_meta(project_dir: &Path) -> Option<TicketProjectMeta> {
     let path = project_dir.join(PROJECT_META_FILE);
     let raw = std::fs::read_to_string(&path).ok()?;
-    let val: serde_yaml::Value = serde_yaml::from_str(&raw).ok()?;
+    let stripped = raw.trim_start();
+    if !stripped.starts_with("---") {
+        return None;
+    }
+    let rest = &stripped[3..];
+    let front_text = match rest.find("\n---") {
+        Some(idx) => &rest[..idx],
+        None => rest,
+    };
+    let val: serde_yaml::Value = serde_yaml::from_str(front_text).ok()?;
     let prefix = val
         .get("ticket_prefix")
         .and_then(|v| v.as_str())
@@ -366,8 +375,10 @@ pub(crate) fn write_project_meta(project_dir: &Path, meta: &TicketProjectMeta) -
             serde_yaml::Value::String(meta.description.clone()),
         );
     }
-    let body = serde_yaml::to_string(&serde_yaml::Value::Mapping(map))
+    let yaml = serde_yaml::to_string(&serde_yaml::Value::Mapping(map))
         .context("serialize ticket project meta")?;
+    let header = yaml.trim_start_matches("---\n");
+    let body = format!("---\n{header}---\n\n");
     atomic_write_file(&path, body.as_bytes())
         .with_context(|| format!("Failed to write {}", path.display()))?;
     Ok(())
@@ -429,7 +440,7 @@ fn project_archived_from_db(
     .map(|v| v != 0)
 }
 
-/// Disk is truth; DB is a cache. Falls back to SQLite when `.project.yaml` is missing.
+/// Disk is truth; DB is a cache. Falls back to SQLite when `.project.md` is missing.
 pub(crate) fn is_ticket_project_archived(
     conn: &Connection,
     repo_path: &Path,
@@ -499,7 +510,7 @@ pub(crate) fn ensure_project_prefix(
     Ok(prefix)
 }
 
-/// Set or clear project-level archive in `.project.yaml` + SQLite (no ticket path moves).
+/// Set or clear project-level archive in `.project.md` + SQLite (no ticket path moves).
 pub(crate) fn set_ticket_project_archived(
     conn: &Connection,
     repo_path: &Path,
@@ -761,7 +772,7 @@ pub(crate) fn generate_unique_ticket_id(
         if !is_valid_ticket_id(&id) {
             continue;
         }
-        let path = project_dir.join(format!("{id}.yaml"));
+        let path = project_dir.join(format!("{id}.md"));
         if path.exists() {
             continue;
         }
@@ -1109,7 +1120,7 @@ fn detail_to_upsert(
     }
 }
 
-/// Move legacy flat `*.yaml` at tickets root into `{default}/`.
+/// Move legacy flat `*.md` at tickets root into `{default}/`.
 fn migrate_flat_ticket_yamls(dir: &Path, into_project: &str) {
     let project_dir = dir.join(into_project);
     let entries = match std::fs::read_dir(dir) {
@@ -1126,7 +1137,7 @@ fn migrate_flat_ticket_yamls(dir: &Path, into_project: &str) {
             .and_then(|s| s.to_str())
             .unwrap_or("")
             .to_ascii_lowercase();
-        if ext != "yaml" && ext != "yml" {
+        if ext != "md" {
             continue;
         }
         let Some(name) = p.file_name() else {
@@ -1221,7 +1232,7 @@ pub(crate) fn index_tickets_from_yaml_with_audit(
                 .and_then(|s| s.to_str())
                 .unwrap_or("")
                 .to_ascii_lowercase();
-            if ext != "yaml" && ext != "yml" {
+            if ext != "md" {
                 continue;
             }
             if index_ticket_yaml_file(conn, repo_path, repo_slug, &p, audit)? {
@@ -1738,7 +1749,7 @@ mod tests {
         let repo = temp_dir("incr_prefix");
         let project_dir = repo.join(".gitoza/tasks/tickets/demo");
         fs::create_dir_all(&project_dir).unwrap();
-        let ticket_rel = ".gitoza/tasks/tickets/demo/DEMO-1.yaml";
+        let ticket_rel = ".gitoza/tasks/tickets/demo/DEMO-1.md";
         let ticket_abs = repo.join(ticket_rel);
         fs::write(
             &ticket_abs,
@@ -1746,7 +1757,11 @@ mod tests {
         )
         .unwrap();
         // Remote already has a stable prefix file (as create_ticket_project would push).
-        fs::write(project_dir.join(".project.yaml"), "ticket_prefix: DEMO\n").unwrap();
+        fs::write(
+            project_dir.join(".project.md"),
+            "---\nticket_prefix: DEMO\n---\n\n",
+        )
+        .unwrap();
 
         let conn = Connection::open_in_memory().unwrap();
         init_tickets_schema(&conn).unwrap();
@@ -1783,18 +1798,18 @@ mod tests {
     #[test]
     fn is_ticket_yaml_path_accepts_project_folder() {
         assert!(is_ticket_yaml_path(
-            ".gitoza/tasks/tickets/demo/DEMO-1.yaml"
+            ".gitoza/tasks/tickets/demo/DEMO-1.md"
         ));
         assert!(!is_ticket_yaml_path(
-            ".gitoza/tasks/tickets/demo/.project.yaml"
+            ".gitoza/tasks/tickets/demo/.project.md"
         ));
-        assert!(!is_ticket_yaml_path(".gitoza/test/cases/a.yaml"));
+        assert!(!is_ticket_yaml_path(".gitoza/test/cases/a.md"));
     }
 
     #[test]
     fn apply_ticket_audit_from_db_overlays_sqlite() {
         let repo = temp_dir("ticket_audit_overlay");
-        let rel = ".gitoza/tasks/tickets/demo/DEMO-1.yaml";
+        let rel = ".gitoza/tasks/tickets/demo/DEMO-1.md";
         let abs = repo.join(rel);
         fs::create_dir_all(abs.parent().unwrap()).unwrap();
         fs::write(
@@ -1845,7 +1860,7 @@ mod tests {
             ticket_type: Some("task".to_string()),
             status: Some("open".to_string()),
             priority: Some("medium".to_string()),
-            file_path: ".gitoza/tasks/tickets/demo/DEMO-1.yaml".to_string(),
+            file_path: ".gitoza/tasks/tickets/demo/DEMO-1.md".to_string(),
             body: "Body".to_string(),
             raw: String::new(),
             updated_at: None,
@@ -1928,17 +1943,17 @@ mod tests {
         let project_dir = repo.join(".gitoza/tasks/tickets/demo");
         fs::create_dir_all(&project_dir).unwrap();
         fs::write(
-            repo.join(".gitoza/tasks/tickets/demo/DEMO-1.yaml"),
+            repo.join(".gitoza/tasks/tickets/demo/DEMO-1.md"),
             "---\ntitle: Open task\nstatus: open\ntype: task\n---\nBody\n",
         )
         .unwrap();
         fs::write(
-            repo.join(".gitoza/tasks/tickets/demo/DEMO-2.yaml"),
+            repo.join(".gitoza/tasks/tickets/demo/DEMO-2.md"),
             "---\ntitle: Bug\nstatus: blocked\ntype: bug\nrelease: demo/1.0\n---\nBody\n",
         )
         .unwrap();
         fs::write(
-            repo.join(".gitoza/tasks/tickets/demo/DEMO-3.yaml"),
+            repo.join(".gitoza/tasks/tickets/demo/DEMO-3.md"),
             "---\ntitle: Story\nstatus: open\ntype: story\n---\nBody\n",
         )
         .unwrap();
@@ -1961,9 +1976,9 @@ mod tests {
             &repo,
             slug,
             &[
-                ".gitoza/tasks/tickets/demo/DEMO-1.yaml".to_string(),
-                ".gitoza/tasks/tickets/demo/DEMO-2.yaml".to_string(),
-                ".gitoza/tasks/tickets/demo/DEMO-3.yaml".to_string(),
+                ".gitoza/tasks/tickets/demo/DEMO-1.md".to_string(),
+                ".gitoza/tasks/tickets/demo/DEMO-2.md".to_string(),
+                ".gitoza/tasks/tickets/demo/DEMO-3.md".to_string(),
             ],
             &crate::AuditStampSource::CommitMeta(std::collections::HashMap::new()),
         )
@@ -1985,17 +2000,17 @@ mod tests {
         let project_dir = repo.join(".gitoza/tasks/tickets/demo");
         fs::create_dir_all(&project_dir).unwrap();
         fs::write(
-            repo.join(".gitoza/tasks/tickets/demo/DEMO-1.yaml"),
+            repo.join(".gitoza/tasks/tickets/demo/DEMO-1.md"),
             "---\ntitle: Open task\nstatus: open\ntype: task\nrelease: demo/1.0\n---\nBody\n",
         )
         .unwrap();
         fs::write(
-            repo.join(".gitoza/tasks/tickets/demo/DEMO-2.yaml"),
+            repo.join(".gitoza/tasks/tickets/demo/DEMO-2.md"),
             "---\ntitle: Bug\nstatus: blocked\ntype: bug\nrelease: demo/1.0\n---\nBody\n",
         )
         .unwrap();
         fs::write(
-            repo.join(".gitoza/tasks/tickets/demo/DEMO-3.yaml"),
+            repo.join(".gitoza/tasks/tickets/demo/DEMO-3.md"),
             "---\ntitle: Other release\nstatus: open\ntype: story\nrelease: demo/2.0\n---\nBody\n",
         )
         .unwrap();
@@ -2018,9 +2033,9 @@ mod tests {
             &repo,
             slug,
             &[
-                ".gitoza/tasks/tickets/demo/DEMO-1.yaml".to_string(),
-                ".gitoza/tasks/tickets/demo/DEMO-2.yaml".to_string(),
-                ".gitoza/tasks/tickets/demo/DEMO-3.yaml".to_string(),
+                ".gitoza/tasks/tickets/demo/DEMO-1.md".to_string(),
+                ".gitoza/tasks/tickets/demo/DEMO-2.md".to_string(),
+                ".gitoza/tasks/tickets/demo/DEMO-3.md".to_string(),
             ],
             &crate::AuditStampSource::CommitMeta(std::collections::HashMap::new()),
         )
@@ -2126,7 +2141,7 @@ mod tests {
         let repo = temp_dir("archive_no_move");
         let project_dir = repo.join(".gitoza/tasks/tickets/demo");
         fs::create_dir_all(&project_dir).unwrap();
-        let ticket_rel = ".gitoza/tasks/tickets/demo/DEMO-1.yaml";
+        let ticket_rel = ".gitoza/tasks/tickets/demo/DEMO-1.md";
         let ticket_abs = repo.join(ticket_rel);
         fs::write(
             &ticket_abs,
@@ -2151,7 +2166,7 @@ mod tests {
         set_ticket_project_archived(&conn, &repo, slug, "demo", true).unwrap();
         assert!(ticket_abs.is_file(), "ticket must stay in place");
         assert!(!repo
-            .join(".gitoza/tasks/tickets/.archive/demo/DEMO-1.yaml")
+            .join(".gitoza/tasks/tickets/.archive/demo/DEMO-1.md")
             .exists());
         assert!(is_ticket_project_archived(&conn, &repo, slug, "demo"));
 
@@ -2165,7 +2180,7 @@ mod tests {
         let repo = temp_dir("delete_archived");
         let project_dir = repo.join(".gitoza/tasks/tickets/demo");
         fs::create_dir_all(&project_dir).unwrap();
-        let ticket_abs = repo.join(".gitoza/tasks/tickets/demo/DEMO-1.yaml");
+        let ticket_abs = repo.join(".gitoza/tasks/tickets/demo/DEMO-1.md");
         fs::write(
             &ticket_abs,
             "---\ntitle: Demo\nstatus: open\ntype: task\n---\nBody\n",
@@ -2189,7 +2204,7 @@ mod tests {
             &conn,
             &repo,
             slug,
-            &[".gitoza/tasks/tickets/demo/DEMO-1.yaml".to_string()],
+            &[".gitoza/tasks/tickets/demo/DEMO-1.md".to_string()],
             &crate::AuditStampSource::CommitMeta(std::collections::HashMap::new()),
         )
         .unwrap();
@@ -2227,7 +2242,7 @@ mod tests {
         let repo = temp_dir("query_archived");
         let project_dir = repo.join(".gitoza/tasks/tickets/demo");
         fs::create_dir_all(&project_dir).unwrap();
-        let ticket_rel = ".gitoza/tasks/tickets/demo/DEMO-1.yaml";
+        let ticket_rel = ".gitoza/tasks/tickets/demo/DEMO-1.md";
         fs::write(
             repo.join(ticket_rel),
             "---\ntitle: Demo\nstatus: open\ntype: task\n---\nBody\n",
@@ -2315,8 +2330,8 @@ mod tests {
         let repo = temp_dir("release_none");
         let project_dir = repo.join(".gitoza/tasks/tickets/demo");
         fs::create_dir_all(&project_dir).unwrap();
-        let backlog_rel = ".gitoza/tasks/tickets/demo/DEMO-1.yaml";
-        let planned_rel = ".gitoza/tasks/tickets/demo/DEMO-2.yaml";
+        let backlog_rel = ".gitoza/tasks/tickets/demo/DEMO-1.md";
+        let planned_rel = ".gitoza/tasks/tickets/demo/DEMO-2.md";
         fs::write(
             repo.join(backlog_rel),
             "---\ntitle: Backlog\nstatus: open\ntype: task\n---\nBody\n",

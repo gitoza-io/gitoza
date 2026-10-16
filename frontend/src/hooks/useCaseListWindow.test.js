@@ -53,7 +53,7 @@ async function renderHost(props) {
 describe("useCaseListWindow", () => {
   it("loads first window when folderPath is set", async () => {
     vi.mocked(fetchCaseWindow).mockResolvedValue({
-      items: [{ file_path: "a.yaml", case_id: "A" }],
+      items: [{ file_path: "a.md", case_id: "A" }],
       total: 1,
     });
 
@@ -75,11 +75,11 @@ describe("useCaseListWindow", () => {
   it("resets when folderPath changes", async () => {
     vi.mocked(fetchCaseWindow)
       .mockResolvedValueOnce({
-        items: [{ file_path: "a.yaml" }],
+        items: [{ file_path: "a.md" }],
         total: 1,
       })
       .mockResolvedValueOnce({
-        items: [{ file_path: "b.yaml" }],
+        items: [{ file_path: "b.md" }],
         total: 1,
       });
 
@@ -87,13 +87,13 @@ describe("useCaseListWindow", () => {
       repoSlug: "repo-1",
       folderPath: ".gitoza/test/cases/a",
     });
-    expect(latest.items[0]?.file_path).toBe("a.yaml");
+    expect(latest.items[0]?.file_path).toBe("a.md");
 
     await renderHost({
       repoSlug: "repo-1",
       folderPath: ".gitoza/test/cases/b",
     });
-    expect(latest.items[0]?.file_path).toBe("b.yaml");
+    expect(latest.items[0]?.file_path).toBe("b.md");
     expect(fetchCaseWindow).toHaveBeenCalledTimes(2);
   });
 
@@ -101,11 +101,11 @@ describe("useCaseListWindow", () => {
     let resolveThird;
     vi.mocked(fetchCaseWindow)
       .mockResolvedValueOnce({
-        items: [{ file_path: "a.yaml" }],
+        items: [{ file_path: "a.md" }],
         total: 1,
       })
       .mockResolvedValueOnce({
-        items: [{ file_path: "b.yaml" }],
+        items: [{ file_path: "b.md" }],
         total: 1,
       })
       .mockImplementationOnce(
@@ -136,27 +136,27 @@ describe("useCaseListWindow", () => {
       );
     });
 
-    expect(latest.items[0]?.file_path).toBe("a.yaml");
+    expect(latest.items[0]?.file_path).toBe("a.md");
     expect(latest.refreshing).toBe(true);
     expect(fetchCaseWindow).toHaveBeenCalledTimes(3);
 
     await act(async () => {
-      resolveThird({ items: [{ file_path: "a-fresh.yaml" }], total: 1 });
+      resolveThird({ items: [{ file_path: "a-fresh.md" }], total: 1 });
     });
 
-    expect(latest.items[0]?.file_path).toBe("a-fresh.yaml");
+    expect(latest.items[0]?.file_path).toBe("a-fresh.md");
     expect(latest.refreshing).toBe(false);
   });
 
   it("propagates patchLocal remove to all folder caches", async () => {
     const parentPath = ".gitoza/test/cases/p";
     const childPath = `${parentPath}/suite`;
-    const childCasePath = `${childPath}/child.yaml`;
+    const childCasePath = `${childPath}/child.md`;
 
     vi.mocked(fetchCaseWindow)
       .mockResolvedValueOnce({
         items: [
-          { file_path: `${parentPath}/other.yaml` },
+          { file_path: `${parentPath}/other.md` },
           { file_path: childCasePath },
         ],
         total: 2,
@@ -166,7 +166,7 @@ describe("useCaseListWindow", () => {
         total: 1,
       })
       .mockResolvedValueOnce({
-        items: [{ file_path: `${parentPath}/other.yaml` }],
+        items: [{ file_path: `${parentPath}/other.md` }],
         total: 1,
       });
 
@@ -191,25 +191,25 @@ describe("useCaseListWindow", () => {
       repoSlug: "repo-1",
       folderPath: parentPath,
     });
-    expect(latest.items.map((r) => r.file_path)).toEqual([`${parentPath}/other.yaml`]);
+    expect(latest.items.map((r) => r.file_path)).toEqual([`${parentPath}/other.md`]);
     expect(fetchCaseWindow).toHaveBeenCalledTimes(3);
 
     await act(async () => {});
-    expect(latest.items.map((r) => r.file_path)).toEqual([`${parentPath}/other.yaml`]);
+    expect(latest.items.map((r) => r.file_path)).toEqual([`${parentPath}/other.md`]);
   });
 
   it("invalidateAll clears all folder caches and refetches on navigation", async () => {
     vi.mocked(fetchCaseWindow)
       .mockResolvedValueOnce({
-        items: [{ file_path: "a.yaml" }],
+        items: [{ file_path: "a.md" }],
         total: 1,
       })
       .mockResolvedValueOnce({
-        items: [{ file_path: "b.yaml" }],
+        items: [{ file_path: "b.md" }],
         total: 1,
       })
       .mockResolvedValueOnce({
-        items: [{ file_path: "a-refetched.yaml" }],
+        items: [{ file_path: "a-refetched.md" }],
         total: 1,
       });
 
@@ -235,7 +235,7 @@ describe("useCaseListWindow", () => {
       repoSlug: "repo-1",
       folderPath: ".gitoza/test/cases/a",
     });
-    expect(latest.items[0]?.file_path).toBe("a-refetched.yaml");
+    expect(latest.items[0]?.file_path).toBe("a-refetched.md");
     expect(fetchCaseWindow).toHaveBeenCalledTimes(4);
   });
 
@@ -243,7 +243,7 @@ describe("useCaseListWindow", () => {
     let resolveSecond;
     vi.mocked(fetchCaseWindow)
       .mockResolvedValueOnce({
-        items: [{ file_path: "a.yaml" }],
+        items: [{ file_path: "a.md" }],
         total: 1,
       })
       .mockImplementationOnce(
@@ -257,7 +257,7 @@ describe("useCaseListWindow", () => {
       repoSlug: "repo-1",
       folderPath: ".gitoza/test/cases/a",
     });
-    expect(latest.items[0]?.file_path).toBe("a.yaml");
+    expect(latest.items[0]?.file_path).toBe("a.md");
 
     await act(async () => {
       root.render(
@@ -268,25 +268,25 @@ describe("useCaseListWindow", () => {
       );
     });
 
-    expect(latest.items[0]?.file_path).toBe("a.yaml");
+    expect(latest.items[0]?.file_path).toBe("a.md");
     expect(latest.refreshing).toBe(true);
 
     await act(async () => {
-      resolveSecond({ items: [{ file_path: "b.yaml" }], total: 1 });
+      resolveSecond({ items: [{ file_path: "b.md" }], total: 1 });
     });
 
-    expect(latest.items[0]?.file_path).toBe("b.yaml");
+    expect(latest.items[0]?.file_path).toBe("b.md");
     expect(latest.refreshing).toBe(false);
   });
 
   it("loadMore appends next chunk", async () => {
     vi.mocked(fetchCaseWindow)
       .mockResolvedValueOnce({
-        items: [{ file_path: "a.yaml" }],
+        items: [{ file_path: "a.md" }],
         total: 2,
       })
       .mockResolvedValueOnce({
-        items: [{ file_path: "b.yaml" }],
+        items: [{ file_path: "b.md" }],
         total: 2,
       });
 
@@ -321,7 +321,7 @@ describe("useCaseListWindow", () => {
 
   it("requests archived-only cases when archiveMode is true", async () => {
     vi.mocked(fetchCaseWindow).mockResolvedValue({
-      items: [{ file_path: ".gitoza/test/cases/.archive/p/c.yaml" }],
+      items: [{ file_path: ".gitoza/test/cases/.archive/p/c.md" }],
       total: 1,
     });
 
@@ -343,8 +343,8 @@ describe("useCaseListWindow", () => {
 
   it("sortLocal after patchLocal keeps renamed case_id", async () => {
     const folderPath = ".gitoza/test/cases/p";
-    const oldPath = `${folderPath}/old_id.yaml`;
-    const newPath = `${folderPath}/new_id.yaml`;
+    const oldPath = `${folderPath}/old_id.md`;
+    const newPath = `${folderPath}/new_id.md`;
 
     vi.mocked(fetchCaseWindow).mockResolvedValueOnce({
       items: [{ file_path: oldPath, case_id: "old_id" }],
@@ -369,7 +369,7 @@ describe("useCaseListWindow", () => {
 
   it("patchLocal remove+add does not inflate total", async () => {
     vi.mocked(fetchCaseWindow).mockResolvedValueOnce({
-      items: [{ file_path: "a.yaml", case_id: "a" }],
+      items: [{ file_path: "a.md", case_id: "a" }],
       total: 1,
     });
 
@@ -381,24 +381,24 @@ describe("useCaseListWindow", () => {
 
     await act(async () => {
       latest.patchLocal({
-        remove: ["a.yaml"],
-        add: [{ file_path: "b.yaml", case_id: "b" }],
+        remove: ["a.md"],
+        add: [{ file_path: "b.md", case_id: "b" }],
       });
     });
 
     expect(latest.total).toBe(1);
-    expect(latest.items).toEqual([{ file_path: "b.yaml", case_id: "b" }]);
+    expect(latest.items).toEqual([{ file_path: "b.md", case_id: "b" }]);
   });
 
   it("snapshotRows returns rows from current items and other folder caches", async () => {
     const parentPath = ".gitoza/test/cases/p";
     const childPath = `${parentPath}/suite`;
-    const childCasePath = `${childPath}/child.yaml`;
+    const childCasePath = `${childPath}/child.md`;
 
     vi.mocked(fetchCaseWindow)
       .mockResolvedValueOnce({
         items: [
-          { file_path: `${parentPath}/other.yaml`, case_id: "other" },
+          { file_path: `${parentPath}/other.md`, case_id: "other" },
           { file_path: childCasePath, case_id: "child" },
         ],
         total: 2,
@@ -418,23 +418,23 @@ describe("useCaseListWindow", () => {
       folderPath: childPath,
     });
 
-    const snap = latest.snapshotRows([childCasePath, `${parentPath}/other.yaml`]);
+    const snap = latest.snapshotRows([childCasePath, `${parentPath}/other.md`]);
     expect(snap).toEqual([
       { file_path: childCasePath, case_id: "child" },
-      { file_path: `${parentPath}/other.yaml`, case_id: "other" },
+      { file_path: `${parentPath}/other.md`, case_id: "other" },
     ]);
   });
 
   it("patchLocalForFolder on cold folder defers optimistic rows until fetch", async () => {
     const sourcePath = ".gitoza/test/cases/source";
     const targetPath = ".gitoza/test/cases/target";
-    const movedCase = { file_path: `${targetPath}/moved.yaml`, case_id: "moved", title: "Moved" };
-    const existingCase = { file_path: `${targetPath}/existing.yaml`, case_id: "existing" };
+    const movedCase = { file_path: `${targetPath}/moved.md`, case_id: "moved", title: "Moved" };
+    const existingCase = { file_path: `${targetPath}/existing.md`, case_id: "existing" };
 
     let resolveTargetFetch;
     vi.mocked(fetchCaseWindow)
       .mockResolvedValueOnce({
-        items: [{ file_path: `${sourcePath}/stay.yaml`, case_id: "stay" }],
+        items: [{ file_path: `${sourcePath}/stay.md`, case_id: "stay" }],
         total: 1,
       })
       .mockImplementationOnce(
@@ -451,7 +451,7 @@ describe("useCaseListWindow", () => {
 
     await act(async () => {
       latest.patchLocalForFolder(targetPath, {
-        remove: [`${sourcePath}/stay.yaml`],
+        remove: [`${sourcePath}/stay.md`],
         add: [movedCase],
       });
     });
@@ -480,12 +480,12 @@ describe("useCaseListWindow", () => {
   it("patchLocalForFolder on warm folder patches cache immediately", async () => {
     const sourcePath = ".gitoza/test/cases/source";
     const targetPath = ".gitoza/test/cases/target";
-    const existingCase = { file_path: `${targetPath}/existing.yaml`, case_id: "existing" };
-    const movedCase = { file_path: `${targetPath}/moved.yaml`, case_id: "moved", title: "Moved" };
+    const existingCase = { file_path: `${targetPath}/existing.md`, case_id: "existing" };
+    const movedCase = { file_path: `${targetPath}/moved.md`, case_id: "moved", title: "Moved" };
 
     vi.mocked(fetchCaseWindow)
       .mockResolvedValueOnce({
-        items: [{ file_path: `${sourcePath}/stay.yaml`, case_id: "stay" }],
+        items: [{ file_path: `${sourcePath}/stay.md`, case_id: "stay" }],
         total: 1,
       })
       .mockResolvedValueOnce({

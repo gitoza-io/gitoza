@@ -104,7 +104,7 @@ describe("releaseTree", () => {
         {
           release_id: "demo/1.1.0",
           name: "1.1.0",
-          file_path: ".gitoza/tasks/tickets/demo/releases/1.1.0.yaml",
+          file_path: ".gitoza/tasks/tickets/demo/releases/1.1.0.md",
           ticket_count: 2,
         },
       ],

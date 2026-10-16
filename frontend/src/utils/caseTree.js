@@ -7,8 +7,8 @@ import { CASES_ARCHIVE_ROOT } from "../constants/casePaths";
 
 /**
  * Attach cases to each folder node. Cases are placed on the node that directly contains them.
- * Project: directory_path e.g. ".gitoza/test/cases/auth", cases live in .gitoza/test/cases/auth/*.yaml (or in suites under auth/).
- * Suite: directory_path e.g. ".gitoza/test/cases/auth/debug", cases live in .gitoza/test/cases/auth/debug/*.yaml.
+ * Project: directory_path e.g. ".gitoza/test/cases/auth", cases live in .gitoza/test/cases/auth/*.md (or in suites under auth/).
+ * Suite: directory_path e.g. ".gitoza/test/cases/auth/debug", cases live in .gitoza/test/cases/auth/debug/*.md.
  */
 function attachCasesToNode(node, rows) {
   const dirPath = node.directory_path || "";
@@ -17,7 +17,7 @@ function attachCasesToNode(node, rows) {
     const fp = row.file_path || "";
     if (!fp.startsWith(prefix)) return false;
     const after = fp.slice(prefix.length);
-    return after.indexOf("/") === -1 && (after.endsWith(".yaml") || after.endsWith(".yml"));
+    return after.indexOf("/") === -1 && (after.endsWith(".md") || after.endsWith(".md"));
   });
 
   const children = (node.children || []).map((child) => attachCasesToNode(child, rows));
@@ -244,7 +244,7 @@ export function getDirectCasesInFolder(rows, directoryPath) {
     const fp = row.file_path || "";
     if (!fp.startsWith(prefix)) return false;
     const after = fp.slice(prefix.length);
-    return after.indexOf("/") === -1 && (after.endsWith(".yaml") || after.endsWith(".yml"));
+    return after.indexOf("/") === -1 && (after.endsWith(".md") || after.endsWith(".md"));
   });
   return casesHere.map(mapRowToCaseItem);
 }
@@ -258,9 +258,9 @@ export function mapRowsToCaseListItems(rows) {
   return (rows || []).map(mapRowToCaseItem);
 }
 
-function isCaseYamlPath(filePath) {
+function isCaseDocPath(filePath) {
   const fp = filePath || "";
-  return fp.endsWith(".yaml") || fp.endsWith(".yml");
+  return fp.endsWith(".md") || fp.endsWith(".md");
 }
 
 function sortCaseListItems(items) {
@@ -319,9 +319,9 @@ export function getRecursiveCasesInFolder(rows, directoryPath) {
   const prefix = `${directoryPath}/`;
   const casesHere = (rows || []).filter((row) => {
     const fp = row.file_path || "";
-    if (fp === `${directoryPath}.yaml` || fp === `${directoryPath}.yml`) return true;
+    if (fp === `${directoryPath}.md`) return true;
     if (!fp.startsWith(prefix)) return false;
-    return isCaseYamlPath(fp);
+    return isCaseDocPath(fp);
   });
   return sortCaseListItems(casesHere.map(mapRowToCaseItem));
 }

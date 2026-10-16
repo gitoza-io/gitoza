@@ -331,7 +331,7 @@ mod tests {
         seed_case(
             &conn,
             "r1",
-            ".gitoza/test/cases/proj_a.gitoza.test/case1.yaml",
+            ".gitoza/test/cases/proj_a.gitoza.test/case1.md",
             ".gitoza/test/cases/proj_a.gitoza.test",
         );
 
@@ -353,7 +353,7 @@ mod tests {
         seed_case(
             &conn,
             "r1",
-            &format!("{project}/suite_b/case1.yaml"),
+            &format!("{project}/suite_b/case1.md"),
             project,
         );
 
@@ -381,7 +381,7 @@ mod tests {
         let project = ".gitoza/test/cases/proj_a.gitoza.test";
         fs::create_dir_all(repo_path.join(project)).unwrap();
         fs::create_dir_all(repo_path.join(project).join("suite_b")).unwrap();
-        seed_case(&conn, "r1", &format!("{project}/root_case.yaml"), project);
+        seed_case(&conn, "r1", &format!("{project}/root_case.md"), project);
         crate::upsert_case_db(
             &conn,
             UpsertCaseArgs {
@@ -390,7 +390,7 @@ mod tests {
                 tags: vec![],
                 status: Some("active".to_string()),
                 priority: None,
-                file_path: format!("{project}/suite_b/nested.yaml"),
+                file_path: format!("{project}/suite_b/nested.md"),
                 repo_slug: "r1".to_string(),
                 directory: project.to_string(),
                 approve_status: "draft".to_string(),

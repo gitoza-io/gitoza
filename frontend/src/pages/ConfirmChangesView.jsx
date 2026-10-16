@@ -8,11 +8,11 @@ import { usePersistentViewActive } from "../components/PersistentView";
 import { useConfirm } from "../components/ConfirmProvider";
 import { useFetchedContent } from "../hooks/useFetchedContent";
 import { TestCaseIcon, TestRunIcon, TicketTypeIcon, WikiPageIcon } from "../components/TestEntityIcons";
-import { isTicketYamlPath, ticketLeafIdFromPath } from "../constants/ticketPaths";
+import { isTicketDocPath, ticketLeafIdFromPath } from "../constants/ticketPaths";
 import {
   isWikiGitkeepPath,
   isWikiTrackedPath,
-  isWikiYamlPath,
+  isWikiDocPath,
   wikiBreadcrumbLabel,
   wikiGitkeepFolderLabel,
   wikiPageIdFromPath,
@@ -78,7 +78,7 @@ function isConfigFile(p) {
 }
 
 function isTicketFile(p) {
-  return isTicketYamlPath(p);
+  return isTicketDocPath(p);
 }
 
 function isWikiFile(p) {
@@ -191,7 +191,7 @@ export default function ConfirmChangesView({
       ...ticketFiles.map((p) => (p || "").replace(/\\/g, "/")),
       ...ticketChanges.map((c) => (c?.path || "").replace(/\\/g, "/")).filter(Boolean),
     ]);
-    return [...set].filter(isTicketYamlPath).sort();
+    return [...set].filter(isTicketDocPath).sort();
   }, [ticketFiles, ticketChanges]);
 
   const wikiPathsForMeta = useMemo(() => {
@@ -199,7 +199,7 @@ export default function ConfirmChangesView({
       ...wikiFiles.map((p) => (p || "").replace(/\\/g, "/")),
       ...wikiChanges.map((c) => (c?.path || "").replace(/\\/g, "/")).filter(Boolean),
     ]);
-    return [...set].filter(isWikiYamlPath).sort();
+    return [...set].filter(isWikiDocPath).sort();
   }, [wikiFiles, wikiChanges]);
 
   const changelistEntries = useMemo(

@@ -124,13 +124,16 @@ fn scaffold_playground_tree(target: &Path) -> Result<()> {
     )?;
 
     let cases_dir = target.join(".gitoza/test/cases/demo.gitoza.test");
-    fs::write(cases_dir.join("demo-welcome-001.yaml"), SAMPLE_CASE_1)?;
-    fs::write(cases_dir.join("demo-login-002.yaml"), SAMPLE_CASE_2)?;
+    fs::write(cases_dir.join("demo-welcome-001.md"), SAMPLE_CASE_1)?;
+    fs::write(cases_dir.join("demo-login-002.md"), SAMPLE_CASE_2)?;
 
     let tickets_dir = target.join(".gitoza/tasks/tickets/demo");
-    fs::write(tickets_dir.join(".project.yaml"), "ticket_prefix: DEMO\n")?;
-    fs::write(tickets_dir.join("DEMO-1.yaml"), SAMPLE_TICKET_2)?;
-    fs::write(tickets_dir.join("DEMO-welcome.yaml"), SAMPLE_TICKET_1)?;
+    fs::write(
+        tickets_dir.join(".project.md"),
+        "---\nticket_prefix: DEMO\n---\n\n",
+    )?;
+    fs::write(tickets_dir.join("DEMO-1.md"), SAMPLE_TICKET_2)?;
+    fs::write(tickets_dir.join("DEMO-welcome.md"), SAMPLE_TICKET_1)?;
 
     // Keep empty dirs visible in git.
     fs::write(target.join(".gitoza/test/runs/.gitkeep"), "")?;
@@ -205,13 +208,13 @@ mod tests {
         assert!(path.join(".git").is_dir());
         assert!(path.join(WORKSPACE_MARKER_REL).is_file());
         assert!(path
-            .join(".gitoza/test/cases/demo.gitoza.test/demo-welcome-001.yaml")
+            .join(".gitoza/test/cases/demo.gitoza.test/demo-welcome-001.md")
             .is_file());
         assert!(path
-            .join(".gitoza/tasks/tickets/demo/DEMO-1.yaml")
+            .join(".gitoza/tasks/tickets/demo/DEMO-1.md")
             .is_file());
         assert!(path
-            .join(".gitoza/tasks/tickets/demo/.project.yaml")
+            .join(".gitoza/tasks/tickets/demo/.project.md")
             .is_file());
         assert!(has_commits(&path).await.unwrap());
 
@@ -243,7 +246,7 @@ mod tests {
         crate::repo_config::save_playground_config(&config, &path).unwrap();
         let slug = crate::paths::PLAYGROUND_SLUG;
 
-        let case_path = path.join(".gitoza/test/cases/demo.gitoza.test/demo-welcome-001.yaml");
+        let case_path = path.join(".gitoza/test/cases/demo.gitoza.test/demo-welcome-001.md");
         let mut content = fs::read_to_string(&case_path).unwrap();
         content.push_str("\n# edited for test\n");
         fs::write(&case_path, content).unwrap();

@@ -61,9 +61,9 @@ describe("effectiveSearchFolderPath", () => {
 
 describe("filterRowsUnderPathPrefix", () => {
   const rows = [
-    { file_path: "proj/a.yaml", directory: "proj" },
-    { file_path: "proj/suite/b.yaml", directory: "proj/suite" },
-    { file_path: "other/c.yaml", directory: "other" },
+    { file_path: "proj/a.md", directory: "proj" },
+    { file_path: "proj/suite/b.md", directory: "proj/suite" },
+    { file_path: "other/c.md", directory: "other" },
   ];
 
   it("returns all rows without a prefix", () => {
@@ -72,16 +72,16 @@ describe("filterRowsUnderPathPrefix", () => {
 
   it("keeps rows under the project prefix", () => {
     expect(filterRowsUnderPathPrefix(rows, "proj")).toEqual([
-      { file_path: "proj/a.yaml", directory: "proj" },
-      { file_path: "proj/suite/b.yaml", directory: "proj/suite" },
+      { file_path: "proj/a.md", directory: "proj" },
+      { file_path: "proj/suite/b.md", directory: "proj/suite" },
     ]);
   });
 });
 
 describe("filterRowsByRunId", () => {
   const rows = [
-    { run_id: "R-1", file_path: "a.yaml" },
-    { run_id: "R-2", file_path: "b.yaml" },
+    { run_id: "R-1", file_path: "a.md" },
+    { run_id: "R-2", file_path: "b.md" },
   ];
 
   it("returns all rows without a run id", () => {
@@ -90,7 +90,7 @@ describe("filterRowsByRunId", () => {
 
   it("keeps only matching run_id", () => {
     expect(filterRowsByRunId(rows, "R-1")).toEqual([
-      { run_id: "R-1", file_path: "a.yaml" },
+      { run_id: "R-1", file_path: "a.md" },
     ]);
   });
 });

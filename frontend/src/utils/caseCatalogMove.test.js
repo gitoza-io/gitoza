@@ -14,32 +14,32 @@ import {
 const PROJECT = ".gitoza/test/cases/auth";
 const SUITE_A = `${PROJECT}/login`;
 const SUITE_B = `${PROJECT}/signup`;
-const CASE_A = `${SUITE_A}/case_one.yaml`;
-const CASE_B = `${SUITE_A}/case_two.yaml`;
+const CASE_A = `${SUITE_A}/case_one.md`;
+const CASE_B = `${SUITE_A}/case_two.md`;
 
 describe("computeCaseMovePath", () => {
   it("joins target folder with filename", () => {
-    expect(computeCaseMovePath(CASE_A, SUITE_B)).toBe(`${SUITE_B}/case_one.yaml`);
+    expect(computeCaseMovePath(CASE_A, SUITE_B)).toBe(`${SUITE_B}/case_one.md`);
   });
 
   it("normalizes trailing slashes on target", () => {
-    expect(computeCaseMovePath(CASE_A, `${SUITE_B}/`)).toBe(`${SUITE_B}/case_one.yaml`);
+    expect(computeCaseMovePath(CASE_A, `${SUITE_B}/`)).toBe(`${SUITE_B}/case_one.md`);
   });
 });
 
 describe("computeRenamedCasePath", () => {
   it("replaces filename stem and preserves extension", () => {
-    expect(computeRenamedCasePath(CASE_A, "renamed_case")).toBe(`${SUITE_A}/renamed_case.yaml`);
+    expect(computeRenamedCasePath(CASE_A, "renamed_case")).toBe(`${SUITE_A}/renamed_case.md`);
   });
 
-  it("preserves .yml extension", () => {
-    const ymlPath = `${SUITE_A}/old_name.yml`;
-    expect(computeRenamedCasePath(ymlPath, "new_name")).toBe(`${SUITE_A}/new_name.yml`);
+  it("preserves .md extension", () => {
+    const mdPath = `${SUITE_A}/old_name.md`;
+    expect(computeRenamedCasePath(mdPath, "new_name")).toBe(`${SUITE_A}/new_name.md`);
   });
 
   it("normalizes backslashes", () => {
     expect(computeRenamedCasePath(CASE_A.replace(/\//g, "\\"), "renamed")).toBe(
-      `${SUITE_A}/renamed.yaml`,
+      `${SUITE_A}/renamed.md`,
     );
   });
 });
@@ -54,18 +54,18 @@ describe("buildCaseMoves", () => {
   it("builds moves for paths not already in target", () => {
     const moves = buildCaseMoves([CASE_A, CASE_B], SUITE_B);
     expect(moves).toEqual([
-      { oldPath: CASE_A, newPath: `${SUITE_B}/case_one.yaml` },
-      { oldPath: CASE_B, newPath: `${SUITE_B}/case_two.yaml` },
+      { oldPath: CASE_A, newPath: `${SUITE_B}/case_one.md` },
+      { oldPath: CASE_B, newPath: `${SUITE_B}/case_two.md` },
     ]);
   });
 
   it("skips paths already in target folder", () => {
-    const moves = buildCaseMoves([`${SUITE_B}/existing.yaml`, CASE_A], SUITE_B);
-    expect(moves).toEqual([{ oldPath: CASE_A, newPath: `${SUITE_B}/case_one.yaml` }]);
+    const moves = buildCaseMoves([`${SUITE_B}/existing.md`, CASE_A], SUITE_B);
+    expect(moves).toEqual([{ oldPath: CASE_A, newPath: `${SUITE_B}/case_one.md` }]);
   });
 
   it("returns empty when all paths are no-ops", () => {
-    expect(buildCaseMoves([`${SUITE_B}/existing.yaml`], SUITE_B)).toEqual([]);
+    expect(buildCaseMoves([`${SUITE_B}/existing.md`], SUITE_B)).toEqual([]);
   });
 });
 
@@ -77,7 +77,7 @@ describe("buildMovedCaseRows", () => {
     ];
     expect(buildMovedCaseRows(moves, sourceRows)).toEqual([
       {
-        file_path: `${SUITE_B}/case_one.yaml`,
+        file_path: `${SUITE_B}/case_one.md`,
         case_id: "TLS-0001",
         title: "Login flow",
       },
@@ -87,7 +87,7 @@ describe("buildMovedCaseRows", () => {
   it("falls back to minimal row when source metadata is missing", () => {
     const moves = buildCaseMoves([CASE_A], SUITE_B);
     expect(buildMovedCaseRows(moves, [])).toEqual([
-      { file_path: `${SUITE_B}/case_one.yaml` },
+      { file_path: `${SUITE_B}/case_one.md` },
     ]);
   });
 
@@ -99,12 +99,12 @@ describe("buildMovedCaseRows", () => {
     ];
     expect(buildMovedCaseRows(moves, sourceRows)).toEqual([
       {
-        file_path: `${SUITE_B}/case_one.yaml`,
+        file_path: `${SUITE_B}/case_one.md`,
         case_id: "TLS-0001",
         title: "One",
       },
       {
-        file_path: `${SUITE_B}/case_two.yaml`,
+        file_path: `${SUITE_B}/case_two.md`,
         case_id: "TLS-0002",
         title: "Two",
       },
@@ -179,14 +179,14 @@ describe("applyCaseMovesToCatalogMaps", () => {
     const { casesByPrefix: next, applied } = applyCaseMovesToCatalogMaps(
       casesByPrefix,
       [],
-      [{ oldPath: CASE_A, newPath: `${SUITE_B}/case_one.yaml` }],
+      [{ oldPath: CASE_A, newPath: `${SUITE_B}/case_one.md` }],
     );
 
     expect(applied).toHaveLength(1);
     expect(casesByPrefix.get(PROJECT)).toHaveLength(1);
     expect(next.get(PROJECT)).toHaveLength(0);
     expect(next.get(SUITE_B)).toEqual([
-      { file_path: `${SUITE_B}/case_one.yaml`, title: "One" },
+      { file_path: `${SUITE_B}/case_one.md`, title: "One" },
     ]);
   });
 
@@ -196,17 +196,17 @@ describe("applyCaseMovesToCatalogMaps", () => {
     const { searchResults: next } = applyCaseMovesToCatalogMaps(
       casesByPrefix,
       searchResults,
-      [{ oldPath: CASE_A, newPath: `${SUITE_B}/case_one.yaml` }],
+      [{ oldPath: CASE_A, newPath: `${SUITE_B}/case_one.md` }],
     );
 
-    expect(next).toEqual([{ file_path: `${SUITE_B}/case_one.yaml`, title: "One" }]);
+    expect(next).toEqual([{ file_path: `${SUITE_B}/case_one.md`, title: "One" }]);
   });
 
   it("supports rollback by removing new paths and re-adding original rows", () => {
     const casesByPrefix = new Map([
       [SUITE_A, [{ file_path: CASE_A, title: "One" }]],
     ]);
-    const move = [{ oldPath: CASE_A, newPath: `${SUITE_B}/case_one.yaml` }];
+    const move = [{ oldPath: CASE_A, newPath: `${SUITE_B}/case_one.md` }];
     const { casesByPrefix: moved, applied } = applyCaseMovesToCatalogMaps(
       casesByPrefix,
       [],

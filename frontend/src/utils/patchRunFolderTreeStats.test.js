@@ -95,7 +95,7 @@ describe("applyRemoveStatsDelta", () => {
 describe("patchFolderTreeForResultChange", () => {
   it("updates suite and project nodes for pending to passed", () => {
     const tree = makeFolderTree();
-    const filePath = `${SUITE}/a.yaml`;
+    const filePath = `${SUITE}/a.md`;
     const next = patchFolderTreeForResultChange(tree, filePath, "pending", "passed");
 
     expect(next).not.toBe(tree);
@@ -127,7 +127,7 @@ describe("patchFolderTreeForResultChange", () => {
       pending: 1,
     };
 
-    const filePath = `${SUITE}/a.yaml`;
+    const filePath = `${SUITE}/a.md`;
     const next = patchFolderTreeForResultChange(tree, filePath, "passed", "failed");
 
     expect(next[0].result_stats.passed).toBe(1);
@@ -140,7 +140,7 @@ describe("patchFolderTreeForResultChange", () => {
     const tree = makeFolderTree();
     const next = patchFolderTreeForResultChange(
       tree,
-      `${SUITE}/a.yaml`,
+      `${SUITE}/a.md`,
       "pending",
       "pending",
     );
@@ -149,7 +149,7 @@ describe("patchFolderTreeForResultChange", () => {
 
   it("patches only project node for root-level case", () => {
     const tree = makeFolderTree();
-    const filePath = `${PROJECT}/root.yaml`;
+    const filePath = `${PROJECT}/root.md`;
     const next = patchFolderTreeForResultChange(tree, filePath, "pending", "passed");
 
     expect(next[0].result_stats.pending).toBe(1);
@@ -180,7 +180,7 @@ describe("patchFolderTreeForAdditions", () => {
   it("increments suite and project stats for one addition", () => {
     const tree = makeFolderTree();
     const { tree: next, missingPrefixes } = patchFolderTreeForAdditions(tree, [
-      { file_path: `${SUITE}/new.yaml`, result: "pending" },
+      { file_path: `${SUITE}/new.md`, result: "pending" },
     ]);
 
     expect(missingPrefixes).toEqual([]);
@@ -201,7 +201,7 @@ describe("patchFolderTreeForAdditions", () => {
     const tree = makeFolderTree();
     const otherProject = ".gitoza/test/cases/billing";
     const { tree: next, missingPrefixes } = patchFolderTreeForAdditions(tree, [
-      { file_path: `${otherProject}/case.yaml`, result: "pending" },
+      { file_path: `${otherProject}/case.md`, result: "pending" },
     ]);
 
     expect(next).toBe(tree);
@@ -213,7 +213,7 @@ describe("patchFolderTreeForRemovals", () => {
   it("decrements suite and project stats for one removal", () => {
     const tree = makeFolderTree();
     const next = patchFolderTreeForRemovals(tree, [
-      { file_path: `${SUITE}/a.yaml`, result: "pending" },
+      { file_path: `${SUITE}/a.md`, result: "pending" },
     ]);
 
     expect(next).not.toBe(tree);
@@ -254,8 +254,8 @@ describe("patchFolderTreeForRemovals", () => {
     };
 
     const next = patchFolderTreeForRemovals(tree, [
-      { file_path: `${SUITE}/a.yaml`, result: "pending" },
-      { file_path: `${SUITE}/b.yaml`, result: "passed" },
+      { file_path: `${SUITE}/a.md`, result: "pending" },
+      { file_path: `${SUITE}/b.md`, result: "passed" },
     ]);
 
     expect(next[0].case_count).toBe(0);

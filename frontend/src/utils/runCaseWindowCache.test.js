@@ -25,28 +25,28 @@ describe("runCaseWindowQueryKey", () => {
 
 describe("mergeRunWindowItems", () => {
   it("appends without duplicate file_path", () => {
-    const existing = [{ file_path: "a.yaml", case_id: "A" }];
+    const existing = [{ file_path: "a.md", case_id: "A" }];
     const incoming = [
-      { file_path: "a.yaml", case_id: "A2" },
-      { file_path: "b.yaml", case_id: "B" },
+      { file_path: "a.md", case_id: "A2" },
+      { file_path: "b.md", case_id: "B" },
     ];
     expect(mergeRunWindowItems(existing, incoming)).toEqual([
-      { file_path: "a.yaml", case_id: "A" },
-      { file_path: "b.yaml", case_id: "B" },
+      { file_path: "a.md", case_id: "A" },
+      { file_path: "b.md", case_id: "B" },
     ]);
   });
 });
 
 describe("removeRunWindowPaths", () => {
   it("removes rows by path", () => {
-    const items = [{ file_path: "a.yaml" }, { file_path: "b.yaml" }];
-    expect(removeRunWindowPaths(items, ["a.yaml"])).toEqual([{ file_path: "b.yaml" }]);
+    const items = [{ file_path: "a.md" }, { file_path: "b.md" }];
+    expect(removeRunWindowPaths(items, ["a.md"])).toEqual([{ file_path: "b.md" }]);
   });
 });
 
 describe("patchAllRunWindowCachesRemove", () => {
   it("removes paths only from caches for the given run", () => {
-    const sharedPath = `${SUITE_A}/case_one.yaml`;
+    const sharedPath = `${SUITE_A}/case_one.md`;
     const run1Parent = runCaseWindowQueryKey(RUN_ID, PROJECT);
     const run1Child = runCaseWindowQueryKey(RUN_ID, SUITE_A);
     const run2Parent = runCaseWindowQueryKey("run-2", PROJECT);
@@ -56,7 +56,7 @@ describe("patchAllRunWindowCachesRemove", () => {
         {
           items: [
             { file_path: sharedPath },
-            { file_path: `${SUITE_A}/other.yaml` },
+            { file_path: `${SUITE_A}/other.md` },
           ],
           total: 2,
         },
@@ -68,7 +68,7 @@ describe("patchAllRunWindowCachesRemove", () => {
     patchAllRunWindowCachesRemove(cacheMap, RUN_ID, [sharedPath]);
 
     expect(cacheMap.get(run1Parent)).toEqual({
-      items: [{ file_path: `${SUITE_A}/other.yaml` }],
+      items: [{ file_path: `${SUITE_A}/other.md` }],
       total: 1,
     });
     expect(cacheMap.get(run1Child)).toEqual({ items: [], total: 0 });
@@ -93,18 +93,18 @@ describe("clearRunWindowCachesForRun", () => {
 
 describe("upsertRunWindowRow", () => {
   it("updates existing row", () => {
-    const items = [{ file_path: "a.yaml", result: "pending" }];
-    expect(upsertRunWindowRow(items, { file_path: "a.yaml", result: "passed" })).toEqual([
-      { file_path: "a.yaml", result: "passed" },
+    const items = [{ file_path: "a.md", result: "pending" }];
+    expect(upsertRunWindowRow(items, { file_path: "a.md", result: "passed" })).toEqual([
+      { file_path: "a.md", result: "passed" },
     ]);
   });
 });
 
 describe("patchRunWindowRow", () => {
   it("patches matching row", () => {
-    const items = [{ file_path: "a.yaml", result: "pending" }];
-    expect(patchRunWindowRow(items, "a.yaml", { result: "failed" })).toEqual([
-      { file_path: "a.yaml", result: "failed" },
+    const items = [{ file_path: "a.md", result: "pending" }];
+    expect(patchRunWindowRow(items, "a.md", { result: "failed" })).toEqual([
+      { file_path: "a.md", result: "failed" },
     ]);
   });
 });

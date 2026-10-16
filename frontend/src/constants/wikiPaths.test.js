@@ -6,7 +6,7 @@ import {
   isArchivedWikiPath,
   isWikiGitkeepPath,
   isWikiTrackedPath,
-  isWikiYamlPath,
+  isWikiDocPath,
   wikiCreateTargetFolder,
   wikiFolderFocusLabel,
   wikiGitkeepFolderLabel,
@@ -27,12 +27,12 @@ describe("wikiCreateTargetFolder", () => {
 });
 
 describe("wiki tracked paths", () => {
-  it("detects yaml and gitkeep under wiki root", () => {
-    expect(isWikiYamlPath(".gitoza/wiki/a/page.yaml")).toBe(true);
+  it("detects wiki docs and gitkeep under wiki root", () => {
+    expect(isWikiDocPath(".gitoza/wiki/a/page.md")).toBe(true);
     expect(isWikiGitkeepPath(".gitoza/wiki/a/.gitkeep")).toBe(true);
     expect(isWikiTrackedPath(".gitoza/wiki/a/.gitkeep")).toBe(true);
-    expect(isWikiYamlPath(".gitoza/wiki/a/.gitkeep")).toBe(false);
-    expect(isWikiGitkeepPath(".gitoza/wiki/a/page.yaml")).toBe(false);
+    expect(isWikiDocPath(".gitoza/wiki/a/.gitkeep")).toBe(false);
+    expect(isWikiGitkeepPath(".gitoza/wiki/a/page.md")).toBe(false);
   });
 
   it("labels gitkeep as folder breadcrumb", () => {
@@ -43,8 +43,8 @@ describe("wiki tracked paths", () => {
 
 describe("wiki archive paths", () => {
   it("detects archived files and folders", () => {
-    expect(isArchivedWikiPath(".gitoza/wiki/.archive/W-ABC123.yaml")).toBe(true);
-    expect(isArchivedWikiPath(".gitoza/wiki/docs/W-ABC123.yaml")).toBe(false);
+    expect(isArchivedWikiPath(".gitoza/wiki/.archive/W-ABC123.md")).toBe(true);
+    expect(isArchivedWikiPath(".gitoza/wiki/docs/W-ABC123.md")).toBe(false);
     expect(isArchivedWikiFolderPath(".gitoza/wiki/.archive/docs")).toBe(true);
     expect(isArchivedWikiFolderPath(".gitoza/wiki/docs")).toBe(false);
   });

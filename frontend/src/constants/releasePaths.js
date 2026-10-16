@@ -4,12 +4,12 @@ export const TICKETS_PREFIX = ".gitoza/tasks/tickets/";
 export const RELEASES_DIR_NAME = "releases";
 
 /**
- * Relative file path for a release YAML.
+ * Relative file path for a release document (Markdown + YAML frontmatter).
  * @param {string} project
  * @param {string} stem
  */
 export function releaseFileRel(project, stem) {
-  return `${TICKETS_PREFIX}${project}/${RELEASES_DIR_NAME}/${stem}.yaml`;
+  return `${TICKETS_PREFIX}${project}/${RELEASES_DIR_NAME}/${stem}.md`;
 }
 
 /**
@@ -50,7 +50,7 @@ export function parseReleaseFilePath(filePath) {
   const project = parts[0];
   const fileName = parts[2];
   if (!project || !fileName || fileName.startsWith(".")) return null;
-  const stem = fileName.replace(/\.(ya?ml)$/i, "");
+  const stem = fileName.replace(/\.md$/i, "");
   if (!stem) return null;
   return { project, stem };
 }

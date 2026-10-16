@@ -14,7 +14,7 @@ describe("mergeSearchCaseIntoRunDetail", () => {
 
   const searchRow = {
     run_id: "run-a",
-    file_path: ".gitoza/test/cases/auth/login/a.yaml",
+    file_path: ".gitoza/test/cases/auth/login/a.md",
     case_id: "TC-1",
     title: "Login",
     result: "failed",
@@ -61,7 +61,7 @@ describe("mergeRunResultsFromBatchResponse", () => {
       run: { passed: 0, failed: 0, skipped: 0, updated_at: "old" },
       cases: [
         {
-          file_path: ".gitoza/test/cases/a/c1.yaml",
+          file_path: ".gitoza/test/cases/a/c1.md",
           case_id: "C1",
           title: "Real Title",
           result: "pending",
@@ -80,7 +80,7 @@ describe("mergeRunResultsFromBatchResponse", () => {
       },
       cases: [
         {
-          file_path: ".gitoza/test/cases/a/c1.yaml",
+          file_path: ".gitoza/test/cases/a/c1.md",
           result: "passed",
           executed_at: "2026-06-09T12:00:00Z",
           executed_by: "Alice",
@@ -98,8 +98,8 @@ describe("mergeRunResultsFromBatchResponse", () => {
 });
 
 describe("mergeListRunCasesIntoDetail", () => {
-  const pathA = ".gitoza/test/cases/suite-a/c1.yaml";
-  const pathB = ".gitoza/test/cases/suite-b/c2.yaml";
+  const pathA = ".gitoza/test/cases/suite-a/c1.md";
+  const pathB = ".gitoza/test/cases/suite-b/c2.md";
 
   it("preserves unsaved draft when local differs from autosave baseline", () => {
     const prev = {
@@ -209,8 +209,8 @@ describe("mergeListRunCasesIntoDetail", () => {
 });
 
 describe("mergeSavedRunResultsPreservingDirty", () => {
-  const pathA = ".gitoza/test/cases/suite-a/c1.yaml";
-  const pathB = ".gitoza/test/cases/suite-b/c2.yaml";
+  const pathA = ".gitoza/test/cases/suite-a/c1.md";
+  const pathB = ".gitoza/test/cases/suite-b/c2.md";
 
   it("does not reset baseline for dirty paths", () => {
     const prevSaved = [

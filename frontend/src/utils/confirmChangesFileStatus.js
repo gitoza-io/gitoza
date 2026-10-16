@@ -12,7 +12,7 @@ export const CHANGE_STATUS_LABELS = {
 function leafName(path) {
   const normalized = (path || "").replace(/\\/g, "/");
   const base = normalized.split("/").filter(Boolean).pop() || normalized;
-  return base.replace(/\.ya?ml$/i, "") || base;
+  return base.replace(/\.md$/i, "") || base;
 }
 
 /**

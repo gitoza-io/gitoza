@@ -818,7 +818,7 @@ pub async fn create_case(
         project_dir.clone()
     };
 
-    let file_path = target_dir.join(format!("{case_id}.yaml"));
+    let file_path = target_dir.join(format!("{case_id}.md"));
     if file_path.exists() {
         return Err(ApiError::conflict(format!(
             "Case '{case_id}' already exists in this location."
@@ -1068,7 +1068,7 @@ pub async fn rename_case(
         .and_then(|s| s.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
-    if !matches!(suffix.as_str(), "yaml" | "yml") {
+    if !matches!(suffix.as_str(), "md") {
         return Err(ApiError::bad_request("Not a YAML case file."));
     }
 
@@ -1186,7 +1186,7 @@ pub async fn move_case(
         .and_then(|s| s.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
-    if !matches!(suffix.as_str(), "yaml" | "yml") {
+    if !matches!(suffix.as_str(), "md") {
         return Err(ApiError::bad_request("Not a YAML case file."));
     }
 
@@ -1200,7 +1200,7 @@ pub async fn move_case(
     let file_name = src
         .file_name()
         .map(|n| n.to_os_string())
-        .unwrap_or_else(|| "case.yaml".into());
+        .unwrap_or_else(|| "page.md".into());
     let dest = target_dir.join(file_name);
     if dest == src {
         return Ok(models::MoveCaseResponse {
@@ -2105,7 +2105,7 @@ fn collect_archived_case_yaml_paths_under(
                 .and_then(|s| s.to_str())
                 .unwrap_or("")
                 .to_ascii_lowercase();
-            if ext != "yaml" && ext != "yml" {
+            if ext != "md" {
                 continue;
             }
             let rel = crate::file_rel_from_repo(repo_path, &p);
@@ -2151,7 +2151,7 @@ fn collect_active_case_yaml_paths_under(
                 .and_then(|s| s.to_str())
                 .unwrap_or("")
                 .to_ascii_lowercase();
-            if ext != "yaml" && ext != "yml" {
+            if ext != "md" {
                 continue;
             }
             let rel = crate::file_rel_from_repo(repo_path, &p);
@@ -2211,7 +2211,7 @@ fn subtree_contains_case_yaml(
                 .and_then(|s| s.to_str())
                 .unwrap_or("")
                 .to_ascii_lowercase();
-            if ext == "yaml" || ext == "yml" {
+            if ext == "md" {
                 return true;
             }
         }
@@ -7033,7 +7033,7 @@ pub async fn create_ticket(
                     "Invalid ticket_id. Use letters, numbers, underscores, and hyphens.",
                 ));
             }
-            let file_path = project_dir.join(format!("{requested}.yaml"));
+            let file_path = project_dir.join(format!("{requested}.md"));
             if file_path.exists() {
                 return Err(ApiError::conflict(format!(
                     "Ticket '{requested}' already exists in project '{project}'."
@@ -7043,7 +7043,7 @@ pub async fn create_ticket(
         }
     };
 
-    let file_path = project_dir.join(format!("{ticket_id}.yaml"));
+    let file_path = project_dir.join(format!("{ticket_id}.md"));
     if file_path.exists() {
         return Err(ApiError::conflict(format!(
             "Ticket '{ticket_id}' already exists in project '{project}'."
@@ -7401,7 +7401,7 @@ pub async fn rename_ticket(
     let suffix = full_path
         .extension()
         .and_then(|s| s.to_str())
-        .unwrap_or("yaml")
+        .unwrap_or("md")
         .to_ascii_lowercase();
     let cur_stem = full_path
         .file_stem()
@@ -7745,10 +7745,10 @@ pub async fn create_wiki_page(
         crate::wiki::generate_unique_wiki_id(&conn, &slug, &repo_path)
             .map_err(|e| ApiError::internal(format!("{e:#}")))?
     };
-    let file_path = folder_dir.join(format!("{page_id}.yaml"));
+    let file_path = folder_dir.join(format!("{page_id}.md"));
     if file_path.exists() {
         return Err(ApiError::conflict(format!(
-            "A wiki page file named '{page_id}.yaml' already exists. Retry create."
+            "A wiki page file named '{page_id}.md' already exists. Retry create."
         )));
     }
 
@@ -8026,7 +8026,7 @@ pub async fn move_wiki_page(
     let file_name = src
         .file_name()
         .map(|n| n.to_os_string())
-        .unwrap_or_else(|| "page.yaml".into());
+        .unwrap_or_else(|| "page.md".into());
     let dest = repo_path.join(&target_folder).join(&file_name);
     if dest == src {
         return Ok(models::MoveCaseResponse {
@@ -8674,7 +8674,7 @@ pub async fn create_release(
 
     let releases_dir = crate::ticket_releases::ensure_releases_dir(&repo_path, &project)
         .map_err(|e| ApiError::internal(format!("{e:#}")))?;
-    let file_name = format!("{stem}.yaml");
+    let file_name = format!("{stem}.md");
     let full_path = releases_dir.join(&file_name);
     if full_path.exists() {
         return Err(ApiError::conflict(format!(
@@ -8890,8 +8890,8 @@ mod prune_empty_case_dirs_tests {
         let repo = tmp.path();
         let project = project_rel("alpha");
         let suite = suite_rel(&project, "regression");
-        touch_yaml(repo, &format!("{suite}/case-a.yaml"));
-        std::fs::remove_file(repo.join(format!("{suite}/case-a.yaml"))).unwrap();
+        touch_yaml(repo, &format!("{suite}/case-a.md"));
+        std::fs::remove_file(repo.join(format!("{suite}/case-a.md"))).unwrap();
 
         prune_empty_case_dirs_upward(repo, &suite);
 
@@ -8906,8 +8906,8 @@ mod prune_empty_case_dirs_tests {
         let repo = tmp.path();
         let project = project_rel("beta");
         mkdir(repo, &suite_rel(&project, "empty-suite"));
-        touch_yaml(repo, &format!("{project}/active-suite/case-b.yaml"));
-        std::fs::remove_file(repo.join(format!("{project}/active-suite/case-b.yaml"))).unwrap();
+        touch_yaml(repo, &format!("{project}/active-suite/case-b.md"));
+        std::fs::remove_file(repo.join(format!("{project}/active-suite/case-b.md"))).unwrap();
 
         prune_empty_case_dirs_upward(repo, &project);
 
@@ -8921,9 +8921,9 @@ mod prune_empty_case_dirs_tests {
         let project = project_rel("gamma");
         let suite_a = suite_rel(&project, "suite-a");
         let suite_b = suite_rel(&project, "suite-b");
-        touch_yaml(repo, &format!("{suite_a}/case-a.yaml"));
-        touch_yaml(repo, &format!("{suite_b}/case-b.yaml"));
-        std::fs::remove_file(repo.join(format!("{suite_a}/case-a.yaml"))).unwrap();
+        touch_yaml(repo, &format!("{suite_a}/case-a.md"));
+        touch_yaml(repo, &format!("{suite_b}/case-b.md"));
+        std::fs::remove_file(repo.join(format!("{suite_a}/case-a.md"))).unwrap();
 
         prune_empty_case_dirs_upward(repo, &suite_a);
 
@@ -8937,8 +8937,8 @@ mod prune_empty_case_dirs_tests {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path();
         let archive_suite = archive_suite_rel("delta.gitoza.test", "legacy");
-        touch_yaml(repo, &format!("{archive_suite}/case-x.yaml"));
-        std::fs::remove_file(repo.join(format!("{archive_suite}/case-x.yaml"))).unwrap();
+        touch_yaml(repo, &format!("{archive_suite}/case-x.md"));
+        std::fs::remove_file(repo.join(format!("{archive_suite}/case-x.md"))).unwrap();
 
         prune_empty_case_dirs_upward(repo, &archive_suite);
 
@@ -9053,8 +9053,8 @@ mod restore_batch_tests {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path();
         let project = archive_project_rel("alpha");
-        let case_a = archive_case_rel(&project, "regression", "case-a.yaml");
-        let case_b = archive_case_rel(&project, "regression", "case-b.yaml");
+        let case_a = archive_case_rel(&project, "regression", "case-a.md");
+        let case_b = archive_case_rel(&project, "regression", "case-b.md");
         touch_yaml(repo, &case_a);
         touch_yaml(repo, &case_b);
 
@@ -9067,11 +9067,11 @@ mod restore_batch_tests {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path();
         let project = archive_project_rel("beta");
-        let archived = archive_case_rel(&project, "suite", "case-x.yaml");
+        let archived = archive_case_rel(&project, "suite", "case-x.md");
         touch_yaml(repo, &archived);
 
         let active = restore_case_on_disk(repo, &archived, "tester").unwrap();
-        let expected = active_case_rel("beta", "suite", "case-x.yaml");
+        let expected = active_case_rel("beta", "suite", "case-x.md");
         assert_eq!(active, expected);
         assert!(exists(repo, &expected));
         assert!(!exists(repo, &archived));
@@ -9081,8 +9081,8 @@ mod restore_batch_tests {
     async fn restore_cases_batch_restores_all_and_prunes_archive_project() {
         let (_tmp, state, repo_path) = setup_repo();
         let project = archive_project_rel("gamma");
-        let case_a = archive_case_rel(&project, "suite", "case-a.yaml");
-        let case_b = archive_case_rel(&project, "suite", "case-b.yaml");
+        let case_a = archive_case_rel(&project, "suite", "case-a.md");
+        let case_b = archive_case_rel(&project, "suite", "case-b.md");
         touch_yaml(&repo_path, &case_a);
         touch_yaml(&repo_path, &case_b);
 
@@ -9103,11 +9103,11 @@ mod restore_batch_tests {
         assert!(!exists(&repo_path, &case_b));
         assert!(exists(
             &repo_path,
-            &active_case_rel("gamma", "suite", "case-a.yaml")
+            &active_case_rel("gamma", "suite", "case-a.md")
         ));
         assert!(exists(
             &repo_path,
-            &active_case_rel("gamma", "suite", "case-b.yaml")
+            &active_case_rel("gamma", "suite", "case-b.md")
         ));
         assert!(!exists(&repo_path, &project));
     }
@@ -9116,13 +9116,13 @@ mod restore_batch_tests {
     async fn restore_cases_partial_failure_keeps_failed_archived_case() {
         let (_tmp, state, repo_path) = setup_repo();
         let project = archive_project_rel("delta");
-        let case_a = archive_case_rel(&project, "suite", "case-a.yaml");
-        let case_b = archive_case_rel(&project, "suite", "case-b.yaml");
+        let case_a = archive_case_rel(&project, "suite", "case-a.md");
+        let case_b = archive_case_rel(&project, "suite", "case-b.md");
         touch_yaml(&repo_path, &case_a);
         touch_yaml(&repo_path, &case_b);
         touch_yaml(
             &repo_path,
-            &active_case_rel("delta", "suite", "case-b.yaml"),
+            &active_case_rel("delta", "suite", "case-b.md"),
         );
 
         let resp = restore_cases(
@@ -9146,7 +9146,7 @@ mod restore_batch_tests {
     async fn restore_folder_restores_all_cases_under_directory() {
         let (_tmp, state, repo_path) = setup_repo();
         let project = archive_project_rel("epsilon");
-        let case_a = archive_case_rel(&project, "suite", "case-a.yaml");
+        let case_a = archive_case_rel(&project, "suite", "case-a.md");
         touch_yaml(&repo_path, &case_a);
 
         let resp = restore_folder(
@@ -9164,7 +9164,7 @@ mod restore_batch_tests {
         assert!(!exists(&repo_path, &case_a));
         assert!(exists(
             &repo_path,
-            &active_case_rel("epsilon", "suite", "case-a.yaml")
+            &active_case_rel("epsilon", "suite", "case-a.md")
         ));
         assert!(!exists(&repo_path, &project));
     }
@@ -9249,11 +9249,11 @@ mod archive_batch_tests {
         let tmp = tempfile::tempdir().unwrap();
         let repo = tmp.path();
         let project = active_project_rel("beta");
-        let active = active_case_rel(&project, "suite", "case-x.yaml");
+        let active = active_case_rel(&project, "suite", "case-x.md");
         touch_yaml(repo, &active);
 
         let archived = archive_case_on_disk(repo, &active, "", "tester").unwrap();
-        let expected = archived_case_rel("beta", "suite", "case-x.yaml");
+        let expected = archived_case_rel("beta", "suite", "case-x.md");
         assert_eq!(archived, expected);
         assert!(exists(repo, &expected));
         assert!(!exists(repo, &active));
@@ -9263,8 +9263,8 @@ mod archive_batch_tests {
     async fn archive_folder_batch_archives_all_and_prunes_active_project() {
         let (_tmp, state, repo_path) = setup_repo();
         let project = active_project_rel("gamma");
-        let case_a = active_case_rel(&project, "suite", "case-a.yaml");
-        let case_b = active_case_rel(&project, "suite", "case-b.yaml");
+        let case_a = active_case_rel(&project, "suite", "case-a.md");
+        let case_b = active_case_rel(&project, "suite", "case-b.md");
         touch_yaml(&repo_path, &case_a);
         touch_yaml(&repo_path, &case_b);
 
@@ -9286,11 +9286,11 @@ mod archive_batch_tests {
         assert!(!exists(&repo_path, &case_b));
         assert!(exists(
             &repo_path,
-            &archived_case_rel("gamma", "suite", "case-a.yaml")
+            &archived_case_rel("gamma", "suite", "case-a.md")
         ));
         assert!(exists(
             &repo_path,
-            &archived_case_rel("gamma", "suite", "case-b.yaml")
+            &archived_case_rel("gamma", "suite", "case-b.md")
         ));
         assert!(!exists(&repo_path, &project));
     }
@@ -9299,13 +9299,13 @@ mod archive_batch_tests {
     async fn archive_cases_partial_failure_keeps_failed_active_case() {
         let (_tmp, state, repo_path) = setup_repo();
         let project = active_project_rel("delta");
-        let case_a = active_case_rel(&project, "suite", "case-a.yaml");
-        let case_b = active_case_rel(&project, "suite", "case-b.yaml");
+        let case_a = active_case_rel(&project, "suite", "case-a.md");
+        let case_b = active_case_rel(&project, "suite", "case-b.md");
         touch_yaml(&repo_path, &case_a);
         touch_yaml(&repo_path, &case_b);
         touch_yaml(
             &repo_path,
-            &archived_case_rel("delta", "suite", "case-b.yaml"),
+            &archived_case_rel("delta", "suite", "case-b.md"),
         );
 
         let resp = archive_cases(

@@ -1,7 +1,7 @@
 //! File-is-truth ticket releases under `.gitoza/tasks/tickets/{project}/releases/`.
 //!
 //! Identity (Option A): `release_id = {project}/{stem}` where the file is
-//! `{TICKETS_PREFIX}{project}/releases/{stem}.yaml`. Project ownership is the
+//! `{TICKETS_PREFIX}{project}/releases/{stem}.md`. Project ownership is the
 //! parent folder; YAML does not store a `project` field.
 
 use std::{
@@ -25,7 +25,7 @@ pub(crate) const RELEASES_DIR_NAME: &str = "releases";
 
 /// Build relative file path for a release YAML.
 pub(crate) fn release_file_rel(project: &str, stem: &str) -> String {
-    format!("{TICKETS_PREFIX}{project}/{RELEASES_DIR_NAME}/{stem}.yaml")
+    format!("{TICKETS_PREFIX}{project}/{RELEASES_DIR_NAME}/{stem}.md")
 }
 
 /// Compose Option A release_id from project + stem.
@@ -33,7 +33,7 @@ pub(crate) fn compose_release_id(project: &str, stem: &str) -> String {
     format!("{project}/{stem}")
 }
 
-/// Parse `.gitoza/tasks/tickets/{project}/releases/{stem}.yaml` → (project, stem).
+/// Parse `.gitoza/tasks/tickets/{project}/releases/{stem}.md` → (project, stem).
 pub(crate) fn parse_release_path(file_rel: &str) -> Option<(String, String)> {
     let p = file_rel.trim().replace('\\', "/");
     let rest = p.strip_prefix(TICKETS_PREFIX)?;
@@ -65,7 +65,7 @@ pub(crate) fn parse_release_path(file_rel: &str) -> Option<(String, String)> {
         .and_then(|s| s.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
-    if ext != "yaml" && ext != "yml" {
+    if ext != "md" {
         return None;
     }
     Some((project.to_string(), stem.to_string()))
@@ -429,7 +429,7 @@ fn scan_release_dir(dir: &Path, out: &mut Vec<PathBuf>) {
             continue;
         }
         let lower = name.to_ascii_lowercase();
-        if !(lower.ends_with(".yaml") || lower.ends_with(".yml")) {
+        if !lower.ends_with(".md") {
             continue;
         }
         out.push(p);
@@ -668,13 +668,13 @@ mod tests {
     #[test]
     fn parse_release_path_accepts_project_scoped_layout() {
         let (project, stem) =
-            parse_release_path(".gitoza/tasks/tickets/demo/releases/1.1.0.yaml").unwrap();
+            parse_release_path(".gitoza/tasks/tickets/demo/releases/1.1.0.md").unwrap();
         assert_eq!(project, "demo");
         assert_eq!(stem, "1.1.0");
         assert_eq!(compose_release_id(&project, &stem), "demo/1.1.0");
         assert!(is_valid_release_id("demo/1.1.0"));
         assert!(!is_valid_release_id("1.1.0"));
-        assert!(!is_release_yaml_path(".gitoza/tasks/releases/rel-a.yaml"));
+        assert!(!is_release_yaml_path(".gitoza/tasks/releases/rel-a.md"));
     }
 
     #[test]
@@ -688,7 +688,7 @@ mod tests {
                 name: Some("Release A".to_string()),
                 project: Some("App".to_string()),
                 status: Some("open".to_string()),
-                file_path: ".gitoza/tasks/tickets/App/releases/rel-a.yaml".to_string(),
+                file_path: ".gitoza/tasks/tickets/App/releases/rel-a.md".to_string(),
                 repo_slug: slug.to_string(),
                 updated_at: Some("2026-01-01T00:00:00Z".to_string()),
                 updated_by: None,
@@ -705,7 +705,7 @@ mod tests {
                 ticket_type: Some("task".to_string()),
                 status: Some("open".to_string()),
                 priority: None,
-                file_path: ".gitoza/tasks/tickets/App/T-1.yaml".to_string(),
+                file_path: ".gitoza/tasks/tickets/App/T-1.md".to_string(),
                 repo_slug: slug.to_string(),
                 updated_at: None,
                 updated_by: None,
@@ -728,7 +728,7 @@ mod tests {
                 ticket_type: Some("task".to_string()),
                 status: Some("done".to_string()),
                 priority: None,
-                file_path: ".gitoza/tasks/tickets/App/T-2.yaml".to_string(),
+                file_path: ".gitoza/tasks/tickets/App/T-2.md".to_string(),
                 repo_slug: slug.to_string(),
                 updated_at: None,
                 updated_by: None,
@@ -764,7 +764,7 @@ mod tests {
     fn apply_release_audit_from_db_overlays_sqlite() {
         let conn = open_mem();
         let slug = "demo";
-        let rel = ".gitoza/tasks/tickets/App/releases/rel-a.yaml";
+        let rel = ".gitoza/tasks/tickets/App/releases/rel-a.md";
         upsert_release_db(
             &conn,
             UpsertReleaseArgs {

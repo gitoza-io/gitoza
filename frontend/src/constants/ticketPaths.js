@@ -6,23 +6,23 @@ function normalizeRepoPath(path) {
 }
 
 /**
- * True when path is a ticket YAML under `.gitoza/tasks/tickets/`.
+ * True when path is a ticket doc under `.gitoza/tasks/tickets/`.
  * @param {string} path
  */
-export function isTicketYamlPath(path) {
+export function isTicketDocPath(path) {
   const fp = normalizeRepoPath(path);
   if (!fp.startsWith(`${TICKETS_ROOT}/`)) return false;
-  return /\.ya?ml$/i.test(fp);
+  return /\.md$/i.test(fp);
 }
 
 /**
- * Ticket id stem from a ticket YAML path (filename without extension).
+ * Ticket id stem from a ticket doc path (filename without extension).
  * @param {string} filePath
  * @returns {string}
  */
 export function ticketLeafIdFromPath(filePath) {
   const fp = normalizeRepoPath(filePath);
-  return (fp.split("/").pop() || fp).replace(/\.ya?ml$/i, "") || fp;
+  return (fp.split("/").pop() || fp).replace(/\.md$/i, "") || fp;
 }
 
 /**
@@ -76,7 +76,7 @@ export function projectFocusForTicketOpen(filePath, openedProjectPath) {
 }
 
 /**
- * True when path is a ticket project directory (not a ticket YAML).
+ * True when path is a ticket project directory (not a ticket doc).
  * @param {string} path
  */
 export function isTicketProjectPath(path) {

@@ -10,7 +10,7 @@ import RepositoryPaginatedCaseList from "./RepositoryPaginatedCaseList.jsx";
 
 function makeCases(n) {
   return Array.from({ length: n }, (_, i) => ({
-    file_path: `.gitoza/test/cases/p/case-${i}.yaml`,
+    file_path: `.gitoza/test/cases/p/case-${i}.md`,
     case_id: `TC-${i}`,
     title: `Case ${i}`,
   }));

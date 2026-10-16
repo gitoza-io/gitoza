@@ -19,9 +19,9 @@ describe("renameConflict", () => {
       getRenameConflictDisplayName({
         kind: "case",
         newName: "OAW-002",
-        filePath: ".gitoza/test/cases/proj/suite/OAW-001.yaml",
+        filePath: ".gitoza/test/cases/proj/suite/OAW-001.md",
       }),
-    ).toBe("OAW-002.yaml");
+    ).toBe("OAW-002.md");
   });
 
   it("builds folder display name from sanitized name", () => {
@@ -29,18 +29,18 @@ describe("renameConflict", () => {
   });
 
   it("identifies RenameNameConflictError instances", () => {
-    const err = new RenameNameConflictError("OAW-002.yaml");
+    const err = new RenameNameConflictError("OAW-002.md");
     expect(isRenameNameConflictError(err)).toBe(true);
-    expect(err.displayName).toBe("OAW-002.yaml");
+    expect(err.displayName).toBe("OAW-002.md");
   });
 
   it("matches rename session by source or target path", () => {
     const session = {
-      sourcePath: "a/old.yaml",
-      targetPath: "a/new.yaml",
+      sourcePath: "a/old.md",
+      targetPath: "a/new.md",
     };
-    expect(isCaseInRenameSession("a/old.yaml", session)).toBe(true);
-    expect(isCaseInRenameSession("a/new.yaml", session)).toBe(true);
-    expect(isCaseInRenameSession("a/other.yaml", session)).toBe(false);
+    expect(isCaseInRenameSession("a/old.md", session)).toBe(true);
+    expect(isCaseInRenameSession("a/new.md", session)).toBe(true);
+    expect(isCaseInRenameSession("a/other.md", session)).toBe(false);
   });
 });

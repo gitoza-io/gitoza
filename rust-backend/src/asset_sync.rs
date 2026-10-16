@@ -519,13 +519,13 @@ mod tests {
         fs::create_dir_all(&shared_dir).unwrap();
 
         // Repo: one case and one ticket referencing the asset id.
-        let case_rel = ".gitoza/test/cases/proj/a.yaml";
+        let case_rel = ".gitoza/test/cases/proj/a.md";
         let case_abs = repo_dir.join(case_rel);
         fs::create_dir_all(case_abs.parent().unwrap()).unwrap();
         let file_name = "img_abc12345.png";
         fs::write(&case_abs, format!("title: A\nbody: \"![]({file_name})\"\n")).unwrap();
 
-        let ticket_rel = ".gitoza/tasks/tickets/proj/T-1.yaml";
+        let ticket_rel = ".gitoza/tasks/tickets/proj/T-1.md";
         let ticket_abs = repo_dir.join(ticket_rel);
         fs::create_dir_all(ticket_abs.parent().unwrap()).unwrap();
         fs::write(

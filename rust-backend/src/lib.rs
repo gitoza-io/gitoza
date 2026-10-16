@@ -249,6 +249,13 @@ pub(crate) fn validate_case_file_path_for_write(file_path: &str) -> Result<Strin
     if !file_path.starts_with(CASES_PREFIX) || file_path == CASES_PREFIX.trim_end_matches('/') {
         return Err("Case must be under .gitoza/test/cases/".to_string());
     }
+    let name = Path::new(&file_path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+    if !crate::paths::has_workspace_doc_ext(name) {
+        return Err("Case file must be .md".to_string());
+    }
     Ok(file_path)
 }
 
@@ -980,7 +987,7 @@ pub(crate) fn count_yaml_cases_in_dir_fs(dir_abs: &Path, ignore: &HashSet<&str>)
             .and_then(|s| s.to_str())
             .unwrap_or("")
             .to_ascii_lowercase();
-        if ext != "yaml" && ext != "yml" {
+        if ext != "md" {
             continue;
         }
 
@@ -2375,7 +2382,7 @@ pub(crate) fn index_cases_from_yaml_with_audit(
                 .and_then(|s| s.to_str())
                 .unwrap_or("")
                 .to_ascii_lowercase();
-            if ext != "yaml" && ext != "yml" {
+            if ext != "md" {
                 continue;
             }
 
@@ -4063,7 +4070,7 @@ pub(crate) fn set_run_results_batch_in_db(
     })
 }
 
-/// Import results from a `.results.yaml` doc into SQLite (pull / incremental index).
+/// Import results from a `.results.md` doc into SQLite (pull / incremental index).
 ///
 /// Sparse YAML only lists non-pending results: this **replaces** all DB results for the
 /// run (delete then apply map) and clears execution meta on member cases absent from the map.
@@ -4118,7 +4125,7 @@ pub(crate) fn sync_run_results_from_results_yaml_doc(
         }
     }
 
-    // Paths not in sparse results.yaml are pending: clear execution stamps.
+    // Paths not in sparse results.md are pending: clear execution stamps.
     let member_paths: Vec<String> = conn
         .prepare(
             "SELECT file_path FROM test_run_cases WHERE repo_slug = ?1 AND run_id = ?2",
@@ -4692,12 +4699,11 @@ fn discover_yaml_files_rec(
                 visit(out, &p, repo_path, ignore_dirs);
                 continue;
             }
-            let ext = p
+            if p
                 .extension()
                 .and_then(|s| s.to_str())
-                .unwrap_or("")
-                .to_ascii_lowercase();
-            if ext == "yaml" || ext == "yml" {
+                .is_some_and(crate::paths::is_workspace_doc_ext)
+            {
                 out.push(p);
             }
         }
@@ -6299,7 +6305,7 @@ pub(crate) fn filter_case_and_run_yaml_paths(all_paths: &[String]) -> (Vec<Strin
             .and_then(|s| s.to_str())
             .unwrap_or("")
             .to_ascii_lowercase();
-        if ext != "yaml" && ext != "yml" {
+        if ext != "md" {
             continue;
         }
         if p.starts_with(".gitoza/test/cases/") {
@@ -6689,7 +6695,7 @@ pub async fn sync_index_after_pull(state: &AppState, repo_path: &Path, slug: &st
 
 /// Apply case/run YAML path changes into SQLite.
 ///
-/// Always flushes pending run YAML before reading disk so stale `results.yaml`
+/// Always flushes pending run YAML before reading disk so stale `results.md`
 /// cannot overwrite newer DB execution results. Callers must not bypass this
 /// for disk-sourced run imports.
 pub(crate) async fn sync_index_for_changed_paths(
@@ -7367,8 +7373,7 @@ pub(crate) fn commit_label_from_path(file_path: &str) -> Option<String> {
         if name.starts_with('.') {
             return None;
         }
-        let lower = name.to_ascii_lowercase();
-        if lower.ends_with(".yaml") || lower.ends_with(".yml") {
+        if crate::paths::has_workspace_doc_ext(name) {
             return Path::new(name)
                 .file_stem()
                 .and_then(|s| s.to_str())
@@ -7382,8 +7387,7 @@ pub(crate) fn commit_label_from_path(file_path: &str) -> Option<String> {
         if name.starts_with('.') {
             return None;
         }
-        let lower = name.to_ascii_lowercase();
-        if lower.ends_with(".yaml") || lower.ends_with(".yml") {
+        if crate::paths::has_workspace_doc_ext(name) {
             return Path::new(name)
                 .file_stem()
                 .and_then(|s| s.to_str())
@@ -7834,7 +7838,7 @@ mod tests {
     #[test]
     fn yaml_roundtrip_preserves_tags_order() {
         let dir = temp_dir("yaml_roundtrip");
-        let file = dir.join("case.yaml");
+        let file = dir.join("case.md");
 
         let mut fm = IndexMap::<String, serde_yaml::Value>::new();
         fm.insert(
@@ -7884,7 +7888,7 @@ mod tests {
     #[test]
     fn write_full_yaml_preserves_indexmap_insertion_order() {
         let dir = temp_dir("yaml_title_order");
-        let file = dir.join("case.yaml");
+        let file = dir.join("case.md");
         let mut fm = IndexMap::new();
         fm.insert(
             "title".to_string(),
@@ -7904,7 +7908,7 @@ mod tests {
     #[test]
     fn update_preserves_on_disk_front_matter_key_order_and_unknown_keys() {
         let dir = temp_dir("yaml_preserve_order");
-        let file = dir.join("case.yaml");
+        let file = dir.join("case.md");
         let ai_raw = "---\ntags:\n- a\nai_only: keep-me\ntitle: Hello\nstatus: active\n---\n\nBody one\n";
         fs::write(&file, ai_raw).unwrap();
 
@@ -7943,7 +7947,7 @@ mod tests {
     #[test]
     fn reconcile_preserves_disk_tag_and_scalar_casing_for_body_only() {
         let dir = temp_dir("yaml_casing_body_only");
-        let file = dir.join("ticket.yaml");
+        let file = dir.join("ticket.md");
         let disk = "---\ntitle: T\ntype: task\nstatus: Open\npriority: low\ntags:\n- handbook\n- backlog\n---\n\nOld body\n";
         fs::write(&file, disk).unwrap();
         let before = fs::read_to_string(&file).unwrap();
@@ -8021,7 +8025,7 @@ mod tests {
     #[test]
     fn body_only_rewrite_keeps_front_matter_bytes_identical() {
         let dir = temp_dir("yaml_body_only");
-        let file = dir.join("case.yaml");
+        let file = dir.join("case.md");
         let ai_raw = "---\ntags:\n- z\ntitle: T\n---\n\nOld body\n";
         fs::write(&file, ai_raw).unwrap();
         let before = fs::read_to_string(&file).unwrap();
@@ -8052,7 +8056,7 @@ mod tests {
     #[test]
     fn write_full_yaml_allows_empty_body_between_separators() {
         let dir = temp_dir("yaml_empty_body");
-        let file = dir.join("case.yaml");
+        let file = dir.join("case.md");
         let mut fm = IndexMap::new();
         fm.insert(
             "title".to_string(),
@@ -8070,7 +8074,7 @@ mod tests {
     #[test]
     fn read_full_yaml_defaults_comments_empty_when_omitted() {
         let dir = temp_dir("yaml_comments_default");
-        let file = dir.join("case.yaml");
+        let file = dir.join("case.md");
         let mut fm = IndexMap::new();
         fm.insert(
             "title".to_string(),
@@ -8119,7 +8123,7 @@ mod tests {
     #[test]
     fn read_full_yaml_defaults_status_active_approve_draft_when_omitted() {
         let dir = temp_dir("yaml_defaults");
-        let file = dir.join("minimal.yaml");
+        let file = dir.join("minimal.md");
         fs::write(&file, "---\ntitle: Only title\n---\n\nBody.\n").unwrap();
         let parsed = read_full_yaml(&file).unwrap().unwrap();
         assert_eq!(parsed.title.as_deref(), Some("Only title"));
@@ -8130,7 +8134,7 @@ mod tests {
     #[test]
     fn read_full_yaml_requirement_ids_legacy_and_list() {
         let dir = temp_dir("yaml_req_ids");
-        let scalar = dir.join("scalar.yaml");
+        let scalar = dir.join("scalar.md");
         fs::write(
             &scalar,
             "---\ntitle: T\nrequirement_id: DEMO-1\n---\n\nBody.\n",
@@ -8139,7 +8143,7 @@ mod tests {
         let parsed = read_full_yaml(&scalar).unwrap().unwrap();
         assert_eq!(parsed.requirement_ids, vec!["DEMO-1".to_string()]);
 
-        let list = dir.join("list.yaml");
+        let list = dir.join("list.md");
         fs::write(
             &list,
             "---\ntitle: T\nrequirement_ids:\n  - DEMO-A\n  - DEMO-B\n---\n\nBody.\n",
@@ -8174,7 +8178,7 @@ mod tests {
     #[test]
     fn yaml_roundtrip_preserves_params() {
         let dir = temp_dir("yaml_params_roundtrip");
-        let file = dir.join("case.yaml");
+        let file = dir.join("case.md");
 
         let mut params = BTreeMap::new();
         params.insert("browser".to_string(), "Chrome".to_string());
@@ -8237,7 +8241,7 @@ mod tests {
     #[test]
     fn automated_yaml_roundtrip_true_only_when_set() {
         let dir = temp_dir("yaml_automated_roundtrip");
-        let file = dir.join("case.yaml");
+        let file = dir.join("case.md");
 
         let automated_detail = models::YamlCaseDetail {
             case_id: "TC-A".to_string(),
@@ -8287,7 +8291,7 @@ mod tests {
                 tags: vec![],
                 status: Some("active".to_string()),
                 priority: Some("high".to_string()),
-                file_path: format!("{dir}/a.yaml"),
+                file_path: format!("{dir}/a.md"),
                 repo_slug: repo.to_string(),
                 directory: dir.to_string(),
                 approve_status: "draft".to_string(),
@@ -8310,7 +8314,7 @@ mod tests {
                 tags: vec![],
                 status: Some("active".to_string()),
                 priority: Some("low".to_string()),
-                file_path: format!("{dir}/b.yaml"),
+                file_path: format!("{dir}/b.md"),
                 repo_slug: repo.to_string(),
                 directory: dir.to_string(),
                 approve_status: "draft".to_string(),
@@ -8347,7 +8351,7 @@ mod tests {
                     tags: vec![],
                     status: Some("active".to_string()),
                     priority: Some("medium".to_string()),
-                    file_path: format!("{dir}/{case_id}.yaml"),
+                    file_path: format!("{dir}/{case_id}.md"),
                     repo_slug: repo.to_string(),
                     directory: dir.to_string(),
                     approve_status: "draft".to_string(),
@@ -8416,7 +8420,7 @@ mod tests {
                 tags: vec![],
                 status: Some("active".to_string()),
                 priority: Some("medium".to_string()),
-                file_path: ".gitoza/test/cases/p/a.yaml".to_string(),
+                file_path: ".gitoza/test/cases/p/a.md".to_string(),
                 repo_slug: "r1".to_string(),
                 directory: ".gitoza/test/cases/p".to_string(),
                 approve_status: "draft".to_string(),
@@ -8440,7 +8444,7 @@ mod tests {
                 tags: vec![],
                 status: Some("active".to_string()),
                 priority: Some("medium".to_string()),
-                file_path: ".gitoza/test/cases/p/b.yaml".to_string(),
+                file_path: ".gitoza/test/cases/p/b.md".to_string(),
                 repo_slug: "r1".to_string(),
                 directory: ".gitoza/test/cases/p".to_string(),
                 approve_status: "draft".to_string(),
@@ -8483,7 +8487,7 @@ mod tests {
             tags: vec!["Tag".to_string()],
             status: Some("active".to_string()),
             priority: Some("medium".to_string()),
-            file_path: ".gitoza/test/cases/p/a.yaml".to_string(),
+            file_path: ".gitoza/test/cases/p/a.md".to_string(),
             repo_slug: "r1".to_string(),
             directory: " .gitoza/test/cases/p/a".trim().to_string(),
             approve_status: "draft".to_string(),
@@ -8501,7 +8505,7 @@ mod tests {
         let row1: (Option<String>, Option<String>) = conn
             .query_row(
                 "SELECT title, requirement_id FROM test_cases WHERE repo_slug = ? AND file_path = ?",
-                params!["r1", ".gitoza/test/cases/p/a.yaml"],
+                params!["r1", ".gitoza/test/cases/p/a.md"],
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )
             .unwrap();
@@ -8514,7 +8518,7 @@ mod tests {
             tags: vec!["Tag".to_string()],
             status: Some("active".to_string()),
             priority: Some("medium".to_string()),
-            file_path: ".gitoza/test/cases/p/a.yaml".to_string(),
+            file_path: ".gitoza/test/cases/p/a.md".to_string(),
             repo_slug: "r1".to_string(),
             directory: ".gitoza/test/cases/p".to_string(),
             approve_status: "approved".to_string(),
@@ -8532,7 +8536,7 @@ mod tests {
         let row2: (Option<String>, Option<String>, Option<String>) = conn
             .query_row(
                 "SELECT title, approve_status, requirement_id FROM test_cases WHERE repo_slug = ? AND file_path = ?",
-                params!["r1", ".gitoza/test/cases/p/a.yaml"],
+                params!["r1", ".gitoza/test/cases/p/a.md"],
                 |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
             )
             .unwrap();
@@ -8545,8 +8549,8 @@ mod tests {
     fn query_cases_db_requirement_id_contains_json_and_scalar() {
         let conn = Connection::open_in_memory().unwrap();
         init_schema(&conn).unwrap();
-        let fp_json = ".gitoza/test/cases/p/multi.yaml";
-        let fp_scalar = ".gitoza/test/cases/p/legacy.yaml";
+        let fp_json = ".gitoza/test/cases/p/multi.md";
+        let fp_scalar = ".gitoza/test/cases/p/legacy.md";
         upsert_case_db(
             &conn,
             UpsertCaseArgs {
@@ -8689,21 +8693,21 @@ mod tests {
         seed_case_for_query(
             &conn,
             "r1",
-            ".gitoza/test/cases/auth/login/a.yaml",
+            ".gitoza/test/cases/auth/login/a.md",
             "a",
             "active",
         );
         seed_case_for_query(
             &conn,
             "r1",
-            ".gitoza/test/cases/auth/login/b.yaml",
+            ".gitoza/test/cases/auth/login/b.md",
             "b",
             "active",
         );
         seed_case_for_query(
             &conn,
             "r1",
-            ".gitoza/test/cases/other/x.yaml",
+            ".gitoza/test/cases/other/x.md",
             "x",
             "active",
         );
@@ -8748,7 +8752,7 @@ mod tests {
             seed_case_for_query(
                 &conn,
                 "r1",
-                &format!(".gitoza/test/cases/p/c{i}.yaml"),
+                &format!(".gitoza/test/cases/p/c{i}.md"),
                 &format!("c{i}"),
                 "active",
             );
@@ -8792,14 +8796,14 @@ mod tests {
         seed_case_for_query(
             &conn,
             "r1",
-            ".gitoza/test/cases/p/active.yaml",
+            ".gitoza/test/cases/p/active.md",
             "active",
             "active",
         );
         seed_case_for_query(
             &conn,
             "r1",
-            ".gitoza/test/cases/.archive/p/old.yaml",
+            ".gitoza/test/cases/.archive/p/old.md",
             "old",
             "archived",
         );
@@ -8921,7 +8925,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/p/a.yaml",
+            ".gitoza/test/cases/p/a.md",
             "TC-1",
             "Alpha",
             &["smoke"],
@@ -8935,7 +8939,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/p/b.yaml",
+            ".gitoza/test/cases/p/b.md",
             "TC-2",
             "Beta",
             &["smoke"],
@@ -9005,7 +9009,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/p/a.yaml",
+            ".gitoza/test/cases/p/a.md",
             "TC-1",
             "Case A",
             &[],
@@ -9019,7 +9023,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-b",
-            ".gitoza/test/cases/p/b.yaml",
+            ".gitoza/test/cases/p/b.md",
             "TC-2",
             "Case B",
             &[],
@@ -9083,8 +9087,8 @@ VALUES (?1, ?2, ?3, '2024-01-03')
     fn query_cases_db_filters_by_assigned_to() {
         let conn = Connection::open_in_memory().unwrap();
         init_schema(&conn).unwrap();
-        seed_case_for_query(&conn, "r1", ".gitoza/test/cases/p/a.yaml", "a", "active");
-        seed_case_for_query(&conn, "r1", ".gitoza/test/cases/p/b.yaml", "b", "active");
+        seed_case_for_query(&conn, "r1", ".gitoza/test/cases/p/a.md", "a", "active");
+        seed_case_for_query(&conn, "r1", ".gitoza/test/cases/p/b.md", "b", "active");
         conn.execute(
             "UPDATE test_cases SET assigned_to = 'Alice' WHERE case_id = 'a'",
             [],
@@ -9130,7 +9134,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
     fn query_cases_db_assigned_to_case_insensitive() {
         let conn = Connection::open_in_memory().unwrap();
         init_schema(&conn).unwrap();
-        seed_case_for_query(&conn, "r1", ".gitoza/test/cases/p/a.yaml", "a", "active");
+        seed_case_for_query(&conn, "r1", ".gitoza/test/cases/p/a.md", "a", "active");
         conn.execute(
             "UPDATE test_cases SET assigned_to = 'Alice' WHERE case_id = 'a'",
             [],
@@ -9215,11 +9219,11 @@ VALUES (?1, ?2, ?3, '2024-01-03')
 
         let mut params_a = BTreeMap::new();
         params_a.insert("env".to_string(), "staging".to_string());
-        seed_case_with_params(&conn, "r1", ".gitoza/test/cases/p/a.yaml", "a", params_a);
+        seed_case_with_params(&conn, "r1", ".gitoza/test/cases/p/a.md", "a", params_a);
 
         let mut params_b = BTreeMap::new();
         params_b.insert("env".to_string(), "prod".to_string());
-        seed_case_with_params(&conn, "r1", ".gitoza/test/cases/p/b.yaml", "b", params_b);
+        seed_case_with_params(&conn, "r1", ".gitoza/test/cases/p/b.md", "b", params_b);
 
         let (items, total) = query_cases_db(
             &conn,
@@ -9263,7 +9267,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         seed_case_with_params(
             &conn,
             "r1",
-            ".gitoza/test/cases/p/match.yaml",
+            ".gitoza/test/cases/p/match.md",
             "match",
             match_params,
         );
@@ -9274,7 +9278,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         seed_case_with_params(
             &conn,
             "r1",
-            ".gitoza/test/cases/p/partial.yaml",
+            ".gitoza/test/cases/p/partial.md",
             "partial",
             partial,
         );
@@ -9320,7 +9324,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
 
         let mut params = BTreeMap::new();
         params.insert("Environment".to_string(), "Staging".to_string());
-        seed_case_with_params(&conn, "r1", ".gitoza/test/cases/p/a.yaml", "a", params);
+        seed_case_with_params(&conn, "r1", ".gitoza/test/cases/p/a.md", "a", params);
 
         let (items, total) = query_cases_db(
             &conn,
@@ -9360,7 +9364,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
 
         let mut params = BTreeMap::new();
         params.insert("my key".to_string(), "alpha".to_string());
-        seed_case_with_params(&conn, "r1", ".gitoza/test/cases/p/a.yaml", "a", params);
+        seed_case_with_params(&conn, "r1", ".gitoza/test/cases/p/a.md", "a", params);
 
         let (items, total) = query_cases_db(
             &conn,
@@ -9402,7 +9406,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/p/a.yaml",
+            ".gitoza/test/cases/p/a.md",
             "TC-1",
             "Alpha",
             &[],
@@ -9447,7 +9451,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/p/a.yaml",
+            ".gitoza/test/cases/p/a.md",
             "TC-1",
             "Alpha",
             &[],
@@ -9493,7 +9497,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/p/a.yaml",
+            ".gitoza/test/cases/p/a.md",
             "TC-1",
             "Alpha",
             &[],
@@ -9561,7 +9565,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/p/a.yaml",
+            ".gitoza/test/cases/p/a.md",
             "TC-1",
             "Alpha",
             &[],
@@ -9606,7 +9610,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/p/a.yaml",
+            ".gitoza/test/cases/p/a.md",
             "TC-1",
             "Alpha",
             &[],
@@ -9683,7 +9687,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             "run_id": run_id,
             "comments": [{ "author": "Bob", "timestamp": "t", "text": "Run note" }],
             "cases": [{
-                "file_path": ".gitoza/test/cases/p/c.yaml",
+                "file_path": ".gitoza/test/cases/p/c.md",
                 "comments": [{ "author": "Bob", "timestamp": "t", "text": "Case note" }]
             }]
         });
@@ -9691,7 +9695,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         let run_comments = load_run_comments(&conn, repo, run_id).unwrap();
         assert_eq!(run_comments.len(), 1);
         let case_comments =
-            load_run_case_comments(&conn, repo, run_id, ".gitoza/test/cases/p/c.yaml").unwrap();
+            load_run_case_comments(&conn, repo, run_id, ".gitoza/test/cases/p/c.md").unwrap();
         assert_eq!(case_comments.len(), 1);
         assert_eq!(case_comments[0].text, "Case note");
     }
@@ -9705,7 +9709,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/proj/a.yaml",
+            ".gitoza/test/cases/proj/a.md",
             "TC-1",
             "A",
             &[],
@@ -9719,7 +9723,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/proj/b.yaml",
+            ".gitoza/test/cases/proj/b.md",
             "TC-2",
             "B",
             &[],
@@ -9734,10 +9738,10 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         assert_eq!(res.paths.len(), 2);
         assert!(res
             .paths
-            .contains(&".gitoza/test/cases/proj/a.yaml".to_string()));
+            .contains(&".gitoza/test/cases/proj/a.md".to_string()));
         assert!(res
             .paths
-            .contains(&".gitoza/test/cases/proj/b.yaml".to_string()));
+            .contains(&".gitoza/test/cases/proj/b.md".to_string()));
     }
 
     #[test]
@@ -9749,7 +9753,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/proj/a.yaml",
+            ".gitoza/test/cases/proj/a.md",
             "TC-1",
             "A",
             &[],
@@ -9763,7 +9767,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             &conn,
             "r1",
             "run-a",
-            ".gitoza/test/cases/proj/suite/b.yaml",
+            ".gitoza/test/cases/proj/suite/b.md",
             "TC-2",
             "B",
             &[],
@@ -9894,15 +9898,15 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         assert!(
             validate_case_file_path_for_write(".gitoza/test/cases/../../../etc/passwd").is_err()
         );
-        assert!(validate_case_file_path_for_write("../.gitoza/test/cases/foo.yaml").is_err());
-        assert!(validate_case_file_path_for_write(".gitoza/test/runs/x.yaml").is_err());
-        assert!(validate_case_file_path_for_write(".gitoza/test/cases/proj/foo.yaml").is_ok());
+        assert!(validate_case_file_path_for_write("../.gitoza/test/cases/foo.md").is_err());
+        assert!(validate_case_file_path_for_write(".gitoza/test/runs/x.md").is_err());
+        assert!(validate_case_file_path_for_write(".gitoza/test/cases/proj/foo.md").is_ok());
     }
 
     #[test]
     fn atomic_write_file_replaces_content() {
         let dir = temp_dir("atomic_write");
-        let p = dir.join("f.yaml");
+        let p = dir.join("f.md");
         atomic_write_file(&p, b"v1").unwrap();
         assert_eq!(fs::read_to_string(&p).unwrap(), "v1");
         atomic_write_file(&p, b"v2").unwrap();
@@ -9956,7 +9960,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
     #[test]
     fn reconcile_case_paths_restores_missing_index() {
         let repo = temp_dir("reconcile_missing");
-        let rel = ".gitoza/test/cases/proj/a.yaml";
+        let rel = ".gitoza/test/cases/proj/a.md";
         minimal_case_yaml(&repo, rel);
         let conn = Connection::open_in_memory().unwrap();
         init_schema(&conn).unwrap();
@@ -9968,7 +9972,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
     #[test]
     fn reconcile_case_paths_removes_stale_db() {
         let repo = temp_dir("reconcile_stale");
-        let rel = ".gitoza/test/cases/proj/gone.yaml";
+        let rel = ".gitoza/test/cases/proj/gone.md";
         let conn = Connection::open_in_memory().unwrap();
         init_schema(&conn).unwrap();
         let slug = "r1";
@@ -9980,7 +9984,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
     #[test]
     fn reconcile_case_paths_clean_when_aligned() {
         let repo = temp_dir("reconcile_aligned");
-        let rel = ".gitoza/test/cases/proj/a.yaml";
+        let rel = ".gitoza/test/cases/proj/a.md";
         minimal_case_yaml(&repo, rel);
         let conn = Connection::open_in_memory().unwrap();
         init_schema(&conn).unwrap();
@@ -9996,20 +10000,20 @@ VALUES (?1, ?2, ?3, '2024-01-03')
     #[test]
     fn merge_path_lists_dedupes() {
         let a = vec![
-            ".gitoza/test/cases/p/a.yaml".to_string(),
-            ".gitoza/test/cases/p/b.yaml".to_string(),
+            ".gitoza/test/cases/p/a.md".to_string(),
+            ".gitoza/test/cases/p/b.md".to_string(),
         ];
         let b = vec![
-            ".gitoza/test/cases/p/b.yaml".to_string(),
-            ".gitoza/test/cases/p/c.yaml".to_string(),
+            ".gitoza/test/cases/p/b.md".to_string(),
+            ".gitoza/test/cases/p/c.md".to_string(),
         ];
         let merged = merge_path_lists(a, b);
         assert_eq!(
             merged,
             vec![
-                ".gitoza/test/cases/p/a.yaml".to_string(),
-                ".gitoza/test/cases/p/b.yaml".to_string(),
-                ".gitoza/test/cases/p/c.yaml".to_string(),
+                ".gitoza/test/cases/p/a.md".to_string(),
+                ".gitoza/test/cases/p/b.md".to_string(),
+                ".gitoza/test/cases/p/c.md".to_string(),
             ]
         );
     }
@@ -10257,7 +10261,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         let config = temp_dir("open_repo_db_schema_only");
         let slug = "myrepo";
         let repo_path = config.join("repos").join(slug);
-        let case_yaml = repo_path.join(".gitoza/test/cases/alpha.gitoza.test/suite/case-a.yaml");
+        let case_yaml = repo_path.join(".gitoza/test/cases/alpha.gitoza.test/suite/case-a.md");
         fs::create_dir_all(case_yaml.parent().unwrap()).unwrap();
         fs::write(&case_yaml, "title: Case A\nstatus: active\n").unwrap();
         init_test_git_repo_bare(&repo_path);
@@ -10321,7 +10325,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
     #[test]
     fn apply_case_audit_from_db_overlays_sqlite_over_yaml() {
         let repo = temp_dir("case_audit_overlay");
-        let rel = ".gitoza/test/cases/proj/a.yaml";
+        let rel = ".gitoza/test/cases/proj/a.md";
         minimal_case_yaml(&repo, rel);
         // Legacy YAML keys must be ignored when overlaying from SQLite.
         let abs = repo.join(rel);
@@ -10378,7 +10382,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         apply_case_audit_from_db(
             &conn,
             slug,
-            ".gitoza/test/cases/proj/missing.yaml",
+            ".gitoza/test/cases/proj/missing.md",
             &mut orphan,
         );
         assert!(orphan.updated_at.is_none());
@@ -10390,7 +10394,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         let conn = Connection::open_in_memory().unwrap();
         init_schema(&conn).unwrap();
         let slug = "r1";
-        let rel = ".gitoza/test/cases/proj/a.yaml";
+        let rel = ".gitoza/test/cases/proj/a.md";
         upsert_case_db(
             &conn,
             UpsertCaseArgs {
@@ -10446,17 +10450,17 @@ VALUES (?1, ?2, ?3, '2024-01-03')
     #[test]
     fn audit_stamp_source_mixed_uses_local_for_dirty() {
         let mut dirty = HashSet::new();
-        dirty.insert(".gitoza/test/cases/proj/a.yaml".to_string());
+        dirty.insert(".gitoza/test/cases/proj/a.md".to_string());
         let mut commit_meta = HashMap::new();
         commit_meta.insert(
-            ".gitoza/test/cases/proj/a.yaml".to_string(),
+            ".gitoza/test/cases/proj/a.md".to_string(),
             CommitAuditMeta {
                 updated_by: "Committer".to_string(),
                 updated_at: "2020-01-01T00:00:00Z".to_string(),
             },
         );
         commit_meta.insert(
-            ".gitoza/test/cases/proj/b.yaml".to_string(),
+            ".gitoza/test/cases/proj/b.md".to_string(),
             CommitAuditMeta {
                 updated_by: "Committer".to_string(),
                 updated_at: "2020-01-02T00:00:00Z".to_string(),
@@ -10468,10 +10472,10 @@ VALUES (?1, ?2, ?3, '2024-01-03')
             local_at: "2024-06-01T12:00:00Z".to_string(),
             commit_meta,
         };
-        let (at, by) = src.resolve(".gitoza/test/cases/proj/a.yaml");
+        let (at, by) = src.resolve(".gitoza/test/cases/proj/a.md");
         assert_eq!(by.as_deref(), Some("Local"));
         assert_eq!(at.as_deref(), Some("2024-06-01T12:00:00Z"));
-        let (at2, by2) = src.resolve(".gitoza/test/cases/proj/b.yaml");
+        let (at2, by2) = src.resolve(".gitoza/test/cases/proj/b.md");
         assert_eq!(by2.as_deref(), Some("Committer"));
         assert_eq!(at2.as_deref(), Some("2020-01-02T00:00:00Z"));
     }
@@ -10482,7 +10486,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         git_ok(&repo, &["init"]);
         git_ok(&repo, &["config", "user.name", "Audit Author"]);
         git_ok(&repo, &["config", "user.email", "audit@example.com"]);
-        let rel = ".gitoza/test/cases/proj/a.yaml";
+        let rel = ".gitoza/test/cases/proj/a.md";
         minimal_case_yaml(&repo, rel);
         git_ok(&repo, &["add", rel]);
         git_ok(&repo, &["commit", "-m", "add case"]);
@@ -10499,25 +10503,25 @@ VALUES (?1, ?2, ?3, '2024-01-03')
 
     #[test]
     fn to_archive_path_maps_under_central_archive_root() {
-        let active = ".gitoza/test/cases/auth/login/foo.yaml";
+        let active = ".gitoza/test/cases/auth/login/foo.md";
         let archived = to_archive_path(active).unwrap();
-        assert_eq!(archived, ".gitoza/test/cases/.archive/auth/login/foo.yaml");
+        assert_eq!(archived, ".gitoza/test/cases/.archive/auth/login/foo.md");
     }
 
     #[test]
     fn to_active_path_round_trips_archive_path() {
-        let archived = ".gitoza/test/cases/.archive/auth/login/foo.yaml";
+        let archived = ".gitoza/test/cases/.archive/auth/login/foo.md";
         let active = to_active_path(archived).unwrap();
-        assert_eq!(active, ".gitoza/test/cases/auth/login/foo.yaml");
+        assert_eq!(active, ".gitoza/test/cases/auth/login/foo.md");
         assert_eq!(to_archive_path(&active).unwrap(), archived);
     }
 
     #[test]
     fn archive_only_delete_path_helpers() {
         assert!(is_archived_file_path(
-            ".gitoza/test/cases/.archive/proj/case.yaml"
+            ".gitoza/test/cases/.archive/proj/case.md"
         ));
-        assert!(!is_archived_file_path(".gitoza/test/cases/proj/case.yaml"));
+        assert!(!is_archived_file_path(".gitoza/test/cases/proj/case.md"));
 
         assert!(is_archived_project_directory_path(
             ".gitoza/test/cases/.archive/proj"
@@ -10542,7 +10546,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
 
     #[test]
     fn case_paths_for_external_stamp_excludes_archived() {
-        let dep = ".gitoza/test/cases/.archive/proj/a.yaml".to_string();
+        let dep = ".gitoza/test/cases/.archive/proj/a.md".to_string();
         let stamp = case_paths_for_external_stamp(&[dep]);
         assert!(stamp.is_empty());
     }
@@ -10555,7 +10559,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         seed_case_for_query(
             &conn,
             "r1",
-            &format!("{archive_project}/case.yaml"),
+            &format!("{archive_project}/case.md"),
             "TC-1",
             "active",
         );
@@ -10571,7 +10575,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         seed_case_for_query(
             &conn,
             "r1",
-            &format!("{project}/case.yaml"),
+            &format!("{project}/case.md"),
             "TC-1",
             "archived",
         );
@@ -10587,7 +10591,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         seed_case_for_query(
             &conn,
             "r1",
-            &format!("{archive_project}/case.yaml"),
+            &format!("{archive_project}/case.md"),
             "TC-1",
             "active",
         );
@@ -10598,7 +10602,7 @@ VALUES (?1, ?2, ?3, '2024-01-03')
     #[test]
     fn discover_yaml_skips_nested_dot_archive_inside_project() {
         let repo = temp_dir("discover_skip_nested_archive");
-        let hidden = ".gitoza/test/cases/proj.gitoza.test/.archive/hidden.yaml";
+        let hidden = ".gitoza/test/cases/proj.gitoza.test/.archive/hidden.md";
         fs::create_dir_all(repo.join(hidden).parent().unwrap()).unwrap();
         fs::write(
             &repo.join(hidden),
@@ -10616,7 +10620,7 @@ body
     #[test]
     fn discover_yaml_includes_top_level_archive_root() {
         let repo = temp_dir("discover_top_level_archive");
-        let archived = ".gitoza/test/cases/.archive/proj.gitoza.test/a.yaml";
+        let archived = ".gitoza/test/cases/.archive/proj.gitoza.test/a.md";
         fs::create_dir_all(repo.join(archived).parent().unwrap()).unwrap();
         fs::write(
             &repo.join(archived),
@@ -10633,7 +10637,7 @@ body
 
     #[test]
     fn case_paths_for_external_stamp_includes_active_porcelain() {
-        let active = ".gitoza/test/cases/proj/a.yaml".to_string();
+        let active = ".gitoza/test/cases/proj/a.md".to_string();
         let stamp = case_paths_for_external_stamp(&[active.clone()]);
         assert_eq!(stamp, vec![active]);
     }
@@ -10642,8 +10646,8 @@ body
     fn merge_reconcile_index_paths_archive_move() {
         let repo = temp_dir("reconcile_arch_move");
         let slug = "r1";
-        let old_rel = ".gitoza/test/cases/proj/a.yaml";
-        let new_rel = ".gitoza/test/cases/.archive/proj/a.yaml";
+        let old_rel = ".gitoza/test/cases/proj/a.md";
+        let new_rel = ".gitoza/test/cases/.archive/proj/a.md";
         let abs = repo.join(new_rel);
         fs::create_dir_all(abs.parent().unwrap()).unwrap();
         fs::write(
@@ -10693,21 +10697,24 @@ body
     fn reconcile_run_paths_includes_yaml_when_run_id_not_indexed() {
         let repo = temp_dir("reconcile_run");
         let run_id = "run-abc";
-        let rel = format!(".gitoza/test/runs/{run_id}/head.yaml");
+        let rel = format!(".gitoza/test/runs/{run_id}/head.md");
         let abs = repo.join(&rel);
         fs::create_dir_all(abs.parent().unwrap()).unwrap();
         fs::write(
             &abs,
-            r#"run_id: run-abc
+            r#"---
+run_id: run-abc
 title: Run
 created_at: 2020-01-01T00:00:00Z
 updated_at: 2020-01-01T00:00:00Z
+---
+
 "#,
         )
         .unwrap();
         fs::write(
-            repo.join(format!(".gitoza/test/runs/{run_id}/cases.yaml")),
-            "run_id: run-abc\ncases: []\n",
+            repo.join(format!(".gitoza/test/runs/{run_id}/cases.md")),
+            "---\nrun_id: run-abc\ncases: []\n---\n\n",
         )
         .unwrap();
         let conn = Connection::open_in_memory().unwrap();
@@ -10734,7 +10741,7 @@ VALUES (?1, ?2, 'Run', NULL, '2020-01-01T00:00:00Z', '2020-01-01T00:00:00Z', 0, 
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp = ".gitoza/test/cases/a/case.yaml";
+        let fp = ".gitoza/test/cases/a/case.md";
         seed_test_run_header(&conn, repo, run_id);
         conn.execute(
             r#"
@@ -10794,7 +10801,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Real Title')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-db-1";
-        let fp = ".gitoza/test/cases/a/case.yaml";
+        let fp = ".gitoza/test/cases/a/case.md";
         seed_test_run_header(&conn, repo, run_id);
         conn.execute(
             r#"
@@ -10848,7 +10855,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Keep Title')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp = ".gitoza/test/cases/yaml_title/case.yaml";
+        let fp = ".gitoza/test/cases/yaml_title/case.md";
         seed_test_run_header(&conn, repo, run_id);
 
         let snapshot = "---\ntitle: Snapshot Title\ncase_id: C1\n---\n\nBody.\n";
@@ -10880,7 +10887,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Keep Title')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp = ".gitoza/test/cases/yaml_meta/case.yaml";
+        let fp = ".gitoza/test/cases/yaml_meta/case.md";
         seed_test_run_header(&conn, repo, run_id);
 
         let snapshot = "---\ntitle: Snapshot Title\ncase_id: C1\npriority: low\ntags: [old]\nrequirement_id: OLD\n---\n\nBody.\n";
@@ -10924,7 +10931,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Keep Title')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-unassign-yaml";
-        let fp = ".gitoza/test/cases/yaml_assign/case.yaml";
+        let fp = ".gitoza/test/cases/yaml_assign/case.md";
         seed_test_run_header(&conn, repo, run_id);
 
         let mut co = serde_json::Map::new();
@@ -10962,7 +10969,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Keep Title')
 
         let state = new_state(config);
         let conn_arc = open_repo_db(&state, slug).unwrap();
-        let fp = ".gitoza/test/cases/proj/case.yaml";
+        let fp = ".gitoza/test/cases/proj/case.md";
         upsert_case_db(
             &conn_arc.lock().unwrap(),
             UpsertCaseArgs {
@@ -11023,7 +11030,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Keep Title')
 
         let state = new_state(config);
         let conn_arc = open_repo_db(&state, slug).unwrap();
-        let fp = ".gitoza/test/cases/proj/auto.yaml";
+        let fp = ".gitoza/test/cases/proj/auto.md";
         upsert_case_db(
             &conn_arc.lock().unwrap(),
             UpsertCaseArgs {
@@ -11063,7 +11070,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Keep Title')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp = ".gitoza/test/cases/no_yaml_title/case.yaml";
+        let fp = ".gitoza/test/cases/no_yaml_title/case.md";
         seed_test_run_header(&conn, repo, run_id);
 
         let snapshot = "---\ntitle: Snapshot Title\ncase_id: C1\n---\n\nBody.\n";
@@ -11094,7 +11101,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Keep Title')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp = ".gitoza/test/cases/b/case.yaml";
+        let fp = ".gitoza/test/cases/b/case.md";
         seed_test_run_header(&conn, repo, run_id);
 
         let snapshot = "---\ntitle: From Snapshot\ncase_id: B1\n---\n\nBody.\n";
@@ -11143,7 +11150,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Keep Title')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp = ".gitoza/test/cases/c/case.yaml";
+        let fp = ".gitoza/test/cases/c/case.md";
         seed_test_run_header(&conn, repo, run_id);
         conn.execute(
             r#"
@@ -11194,8 +11201,8 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Alice', 'Title')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp_a = ".gitoza/test/cases/a.yaml";
-        let fp_b = ".gitoza/test/cases/b.yaml";
+        let fp_a = ".gitoza/test/cases/a.md";
+        let fp_b = ".gitoza/test/cases/b.md";
         seed_test_run_header(&conn, repo, run_id);
         for fp in [fp_a, fp_b] {
             conn.execute(
@@ -11251,7 +11258,7 @@ VALUES (?1, ?2, ?3, 'X', '', '2020-01-01T00:00:00Z', 'T')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp = ".gitoza/test/cases/a.yaml";
+        let fp = ".gitoza/test/cases/a.md";
         seed_test_run_header(&conn, repo, run_id);
         conn.execute(
             r#"
@@ -11287,8 +11294,8 @@ VALUES (?1, ?2, ?3, 'X', '', '2020-01-01T00:00:00Z', 'T')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp_member = ".gitoza/test/cases/a.yaml";
-        let fp_orphan = ".gitoza/test/cases/b.yaml";
+        let fp_member = ".gitoza/test/cases/a.md";
+        let fp_orphan = ".gitoza/test/cases/b.md";
         seed_test_run_header(&conn, repo, run_id);
         conn.execute(
             r#"
@@ -11323,8 +11330,8 @@ VALUES (?1, ?2, ?3, 'A', '', '2020-01-01T00:00:00Z', 'A')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp_a = ".gitoza/test/cases/a.yaml";
-        let fp_b = ".gitoza/test/cases/b.yaml";
+        let fp_a = ".gitoza/test/cases/a.md";
+        let fp_b = ".gitoza/test/cases/b.md";
         seed_test_run_header(&conn, repo, run_id);
         conn.execute(
             r#"
@@ -11377,8 +11384,8 @@ VALUES (?1, ?2, ?3, 'A', '', '2020-01-01T00:00:00Z', 'A')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp_a = ".gitoza/test/cases/a.yaml";
-        let fp_b = ".gitoza/test/cases/b.yaml";
+        let fp_a = ".gitoza/test/cases/a.md";
+        let fp_b = ".gitoza/test/cases/b.md";
         seed_test_run_header(&conn, repo, run_id);
         for (fp, cid) in [(fp_a, "A"), (fp_b, "B")] {
             conn.execute(
@@ -11445,28 +11452,28 @@ VALUES (?1, ?2, ?3, ?4, '', '2020-01-01T00:00:00Z', 'Alice', ?4)
         let config = temp_dir("reconcile_disk_wins");
         let slug = "myrepo";
         let run_id = "550e8400-e29b-41d4-a716-446655440001";
-        let fp = ".gitoza/test/cases/a/case.yaml";
+        let fp = ".gitoza/test/cases/a/case.md";
         let repo_path = config.join("repos").join(slug);
         fs::create_dir_all(&repo_path).unwrap();
 
         let run_dir = repo_path.join(".gitoza/test/runs").join(run_id);
         fs::create_dir_all(&run_dir).unwrap();
         fs::write(
-            run_dir.join("head.yaml"),
+            run_dir.join("head.md"),
             format!(
-                "run_id: {run_id}\ntitle: Run\ncreated_at: 2020-01-01T00:00:00Z\nupdated_at: 2020-01-01T00:00:00Z\n"
+                "---\nrun_id: {run_id}\ntitle: Run\ncreated_at: 2020-01-01T00:00:00Z\nupdated_at: 2020-01-01T00:00:00Z\n---\n\n"
             ),
         )
         .unwrap();
         fs::write(
-            run_dir.join("cases.yaml"),
-            format!("run_id: {run_id}\ncases:\n  - file_path: {fp}\n    case_id: C1\n"),
+            run_dir.join("cases.md"),
+            format!("---\nrun_id: {run_id}\ncases:\n  - file_path: {fp}\n    case_id: C1\n---\n\n"),
         )
         .unwrap();
         // Empty / missing results ⇒ pending on disk.
         fs::write(
-            run_dir.join("results.yaml"),
-            format!("run_id: {run_id}\ntitle: Run\nresults: {{}}\n"),
+            run_dir.join("results.md"),
+            format!("---\nrun_id: {run_id}\ntitle: Run\nresults: {{}}\n---\n\n"),
         )
         .unwrap();
 
@@ -11519,10 +11526,10 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Alice', 'Case')
     #[test]
     fn run_ids_from_yaml_paths_dedupes() {
         let paths = vec![
-            ".gitoza/test/runs/R-ABC123/results.yaml".to_string(),
-            ".gitoza/test/runs/R-ABC123/head.yaml".to_string(),
-            ".gitoza/test/runs/R-XYZ789/cases.yaml".to_string(),
-            ".gitoza/test/cases/foo.yaml".to_string(),
+            ".gitoza/test/runs/R-ABC123/results.md".to_string(),
+            ".gitoza/test/runs/R-ABC123/head.md".to_string(),
+            ".gitoza/test/runs/R-XYZ789/cases.md".to_string(),
+            ".gitoza/test/cases/foo.md".to_string(),
         ];
         let ids = run_ids_from_yaml_paths(&paths);
         assert_eq!(ids, vec!["R-ABC123".to_string(), "R-XYZ789".to_string()]);
@@ -11534,7 +11541,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Alice', 'Case')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-1";
-        let fp = ".gitoza/test/cases/a.yaml";
+        let fp = ".gitoza/test/cases/a.md";
         seed_test_run_header(&conn, repo, run_id);
         conn.execute(
             r#"
@@ -11587,8 +11594,8 @@ VALUES (?1, ?2, ?3, 'A', '', '2020-01-01T00:00:00Z', 'A', 'sha-old')
         let config = temp_dir("flush_before_index");
         let slug = "myrepo";
         let run_id = "550e8400-e29b-41d4-a716-446655440000";
-        let fp_a = ".gitoza/test/cases/a/case.yaml";
-        let fp_b = ".gitoza/test/cases/b/case.yaml";
+        let fp_a = ".gitoza/test/cases/a/case.md";
+        let fp_b = ".gitoza/test/cases/b/case.md";
         let repo_path = config.join("repos").join(slug);
         fs::create_dir_all(&repo_path).unwrap();
         init_test_git_repo(&repo_path, "Tester", "tester@example.com");
@@ -11596,15 +11603,15 @@ VALUES (?1, ?2, ?3, 'A', '', '2020-01-01T00:00:00Z', 'A', 'sha-old')
         let run_dir = repo_path.join(".gitoza/test/runs").join(&run_id);
         fs::create_dir_all(&run_dir).unwrap();
         fs::write(
-            run_dir.join("head.yaml"),
+            run_dir.join("head.md"),
             format!(
-                "run_id: {run_id}\ntitle: Run\ncreated_at: 2020-01-01T00:00:00Z\nupdated_at: 2020-01-01T00:00:00Z\n"
+                "---\nrun_id: {run_id}\ntitle: Run\ncreated_at: 2020-01-01T00:00:00Z\nupdated_at: 2020-01-01T00:00:00Z\n---\n\n"
             ),
         )
         .unwrap();
         fs::write(
-            run_dir.join("cases.yaml"),
-            format!("run_id: {run_id}\ncases:\n  - file_path: {fp_a}\n    case_id: C1\n"),
+            run_dir.join("cases.md"),
+            format!("---\nrun_id: {run_id}\ncases:\n  - file_path: {fp_a}\n    case_id: C1\n---\n\n"),
         )
         .unwrap();
 
@@ -11646,11 +11653,11 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
         )
         .unwrap();
 
-        // Simulate IDE adding case B on disk (cases.yaml changed, results.yaml still stale).
+        // Simulate IDE adding case B on disk (cases.md changed, results.md still stale).
         fs::write(
-            run_dir.join("cases.yaml"),
+            run_dir.join("cases.md"),
             format!(
-                "run_id: {run_id}\ncases:\n  - file_path: {fp_a}\n    case_id: C1\n  - file_path: {fp_b}\n    case_id: C2\n"
+                "---\nrun_id: {run_id}\ncases:\n  - file_path: {fp_a}\n    case_id: C1\n  - file_path: {fp_b}\n    case_id: C2\n---\n\n"
             ),
         )
         .unwrap();
@@ -11672,7 +11679,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
             assert_ne!(
                 result.as_deref(),
                 Some("passed"),
-                "stale results.yaml should drop passed result without flush"
+                "stale results.md should drop passed result without flush"
             );
         }
 
@@ -11735,12 +11742,12 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
         let slug = "r1";
         let files = vec![
             models::PendingFileChange {
-                path: ".gitoza/test/cases/p/a.yaml".to_string(),
+                path: ".gitoza/test/cases/p/a.md".to_string(),
                 status: "M".to_string(),
                 old_path: None,
             },
             models::PendingFileChange {
-                path: ".gitoza/test/cases/p/b.yaml".to_string(),
+                path: ".gitoza/test/cases/p/b.md".to_string(),
                 status: "A".to_string(),
                 old_path: None,
             },
@@ -11750,8 +11757,8 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
         assert_eq!(
             stored,
             vec![
-                ".gitoza/test/cases/p/a.yaml".to_string(),
-                ".gitoza/test/cases/p/b.yaml".to_string(),
+                ".gitoza/test/cases/p/a.md".to_string(),
+                ".gitoza/test/cases/p/b.md".to_string(),
             ]
         );
         let changes = pending_case_file_changes_db(&conn, slug).unwrap();
@@ -11772,8 +11779,8 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
         let conn = Connection::open_in_memory().unwrap();
         init_schema(&conn).unwrap();
         let slug = "r1";
-        let old_path = ".gitoza/test/cases/proj/suite/old_name.yaml";
-        let new_path = ".gitoza/test/cases/proj/suite/new_name.yaml";
+        let old_path = ".gitoza/test/cases/proj/suite/old_name.md";
+        let new_path = ".gitoza/test/cases/proj/suite/new_name.md";
         seed_case_index_row(&conn, slug, old_path);
 
         let updated = remap_case_file_path(&conn, slug, old_path, new_path, "new_name").unwrap();
@@ -11798,12 +11805,12 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
         let old_suite = ".gitoza/test/cases/proj/old_suite";
         let new_suite = ".gitoza/test/cases/proj/new_suite";
         for name in ["a", "b", "c"] {
-            seed_case_index_row(&conn, slug, &format!("{old_suite}/{name}.yaml"));
+            seed_case_index_row(&conn, slug, &format!("{old_suite}/{name}.md"));
         }
         let updated = remap_case_index_paths_by_prefix(&conn, slug, old_suite, new_suite).unwrap();
         assert_eq!(updated, 3);
         for name in ["a", "b", "c"] {
-            let fp = format!("{new_suite}/{name}.yaml");
+            let fp = format!("{new_suite}/{name}.md");
             let title: String = conn
                 .query_row(
                     "SELECT title FROM test_cases WHERE repo_slug = ? AND file_path = ?",
@@ -11819,83 +11826,83 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
 
     #[test]
     fn parse_name_status_changes_reads_amrd_lines() {
-        let out = "R100\t.gitoza/test/cases/p/old/a.yaml\t.gitoza/test/cases/p/new/a.yaml\nM\t.gitoza/test/cases/p/b.yaml\nA\t.gitoza/test/cases/p/c.yaml\nD\t.gitoza/test/cases/p/gone.yaml\nM\t.gitoza/config.json\n";
+        let out = "R100\t.gitoza/test/cases/p/old/a.md\t.gitoza/test/cases/p/new/a.md\nM\t.gitoza/test/cases/p/b.md\nA\t.gitoza/test/cases/p/c.md\nD\t.gitoza/test/cases/p/gone.md\nM\t.gitoza/config.json\n";
         let changes = parse_name_status_changes(out);
         assert_eq!(changes.len(), 5);
         assert_eq!(changes[0].status, "R");
         assert_eq!(
             changes[0].old_path.as_deref(),
-            Some(".gitoza/test/cases/p/old/a.yaml")
+            Some(".gitoza/test/cases/p/old/a.md")
         );
-        assert_eq!(changes[0].path, ".gitoza/test/cases/p/new/a.yaml");
+        assert_eq!(changes[0].path, ".gitoza/test/cases/p/new/a.md");
         assert_eq!(changes[1].status, "M");
-        assert_eq!(changes[1].path, ".gitoza/test/cases/p/b.yaml");
+        assert_eq!(changes[1].path, ".gitoza/test/cases/p/b.md");
         assert_eq!(changes[2].status, "A");
         assert_eq!(changes[3].status, "D");
-        assert_eq!(changes[3].path, ".gitoza/test/cases/p/gone.yaml");
+        assert_eq!(changes[3].path, ".gitoza/test/cases/p/gone.md");
     }
 
     #[test]
     fn partition_discard_git_ops_splits_added_modified_and_rename() {
         let mut status = HashMap::new();
         status.insert(
-            ".gitoza/test/cases/p/a.yaml".into(),
+            ".gitoza/test/cases/p/a.md".into(),
             models::PendingFileChange {
-                path: ".gitoza/test/cases/p/a.yaml".into(),
+                path: ".gitoza/test/cases/p/a.md".into(),
                 status: "M".into(),
                 old_path: None,
             },
         );
         status.insert(
-            ".gitoza/test/cases/p/new.yaml".into(),
+            ".gitoza/test/cases/p/new.md".into(),
             models::PendingFileChange {
-                path: ".gitoza/test/cases/p/new.yaml".into(),
+                path: ".gitoza/test/cases/p/new.md".into(),
                 status: "A".into(),
                 old_path: None,
             },
         );
         status.insert(
-            ".gitoza/test/cases/p/renamed.yaml".into(),
+            ".gitoza/test/cases/p/renamed.md".into(),
             models::PendingFileChange {
-                path: ".gitoza/test/cases/p/renamed.yaml".into(),
+                path: ".gitoza/test/cases/p/renamed.md".into(),
                 status: "R".into(),
-                old_path: Some(".gitoza/test/cases/p/old.yaml".into()),
+                old_path: Some(".gitoza/test/cases/p/old.md".into()),
             },
         );
         status.insert(
-            ".gitoza/test/cases/p/gone.yaml".into(),
+            ".gitoza/test/cases/p/gone.md".into(),
             models::PendingFileChange {
-                path: ".gitoza/test/cases/p/gone.yaml".into(),
+                path: ".gitoza/test/cases/p/gone.md".into(),
                 status: "D".into(),
                 old_path: None,
             },
         );
 
         let paths = vec![
-            ".gitoza/test/cases/p/a.yaml".into(),
-            ".gitoza/test/cases/p/new.yaml".into(),
-            ".gitoza/test/cases/p/renamed.yaml".into(),
-            ".gitoza/test/cases/p/gone.yaml".into(),
+            ".gitoza/test/cases/p/a.md".into(),
+            ".gitoza/test/cases/p/new.md".into(),
+            ".gitoza/test/cases/p/renamed.md".into(),
+            ".gitoza/test/cases/p/gone.md".into(),
         ];
         let (restore, rm) = partition_discard_git_ops(&paths, &status);
         assert_eq!(
             restore,
             vec![
-                ".gitoza/test/cases/p/a.yaml".to_string(),
-                ".gitoza/test/cases/p/gone.yaml".to_string(),
-                ".gitoza/test/cases/p/old.yaml".to_string(),
-                ".gitoza/test/cases/p/renamed.yaml".to_string(),
+                ".gitoza/test/cases/p/a.md".to_string(),
+                ".gitoza/test/cases/p/gone.md".to_string(),
+                ".gitoza/test/cases/p/old.md".to_string(),
+                ".gitoza/test/cases/p/renamed.md".to_string(),
             ]
         );
-        assert_eq!(rm, vec![".gitoza/test/cases/p/new.yaml".to_string()]);
+        assert_eq!(rm, vec![".gitoza/test/cases/p/new.md".to_string()]);
     }
 
     #[test]
     fn is_allowed_discard_path_rejects_traversal_and_outside_gitoza() {
-        assert!(is_allowed_discard_path(".gitoza/test/cases/p/a.yaml"));
+        assert!(is_allowed_discard_path(".gitoza/test/cases/p/a.md"));
         assert!(is_allowed_discard_path(".gitoza/config.json"));
-        assert!(!is_allowed_discard_path("../.gitoza/test/cases/a.yaml"));
-        assert!(!is_allowed_discard_path("/.gitoza/test/cases/a.yaml"));
+        assert!(!is_allowed_discard_path("../.gitoza/test/cases/a.md"));
+        assert!(!is_allowed_discard_path("/.gitoza/test/cases/a.md"));
         assert!(!is_allowed_discard_path("README.md"));
     }
 
@@ -11906,8 +11913,8 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
         fs::create_dir_all(repo_path.join(".gitoza/test/cases/p")).unwrap();
         init_test_git_repo(&repo_path, "Tester", "tester@example.com");
 
-        let mod_rel = ".gitoza/test/cases/p/mod.yaml";
-        let add_rel = ".gitoza/test/cases/p/add.yaml";
+        let mod_rel = ".gitoza/test/cases/p/mod.md";
+        let add_rel = ".gitoza/test/cases/p/add.md";
         fs::write(repo_path.join(mod_rel), "title: original\n").unwrap();
         let _ = std::process::Command::new("git")
             .current_dir(&repo_path)
@@ -11947,16 +11954,16 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
     #[test]
     fn case_changes_from_name_status_filters_cases_and_tickets_prefix() {
         let all = parse_name_status_changes(
-            "M\t.gitoza/test/cases/p/a.yaml\n\
-             D\t.gitoza/test/cases/p/b.yaml\n\
-             A\t.gitoza/tasks/tickets/auth/Auth-1.yaml\n\
+            "M\t.gitoza/test/cases/p/a.md\n\
+             D\t.gitoza/test/cases/p/b.md\n\
+             A\t.gitoza/tasks/tickets/auth/Auth-1.md\n\
              M\t.gitoza/config.json\n",
         );
         let cases = case_changes_from_name_status(&all);
         assert_eq!(cases.len(), 3);
         assert_eq!(cases[0].status, "M");
         assert_eq!(cases[1].status, "D");
-        assert_eq!(cases[2].path, ".gitoza/tasks/tickets/auth/Auth-1.yaml");
+        assert_eq!(cases[2].path, ".gitoza/tasks/tickets/auth/Auth-1.md");
         assert_eq!(cases[2].status, "A");
     }
 
@@ -12081,7 +12088,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-unassigned";
-        let fp = ".gitoza/test/cases/a/case.yaml";
+        let fp = ".gitoza/test/cases/a/case.md";
         seed_test_run_header(&conn, repo, run_id);
         conn.execute(
             "UPDATE test_runs SET assigned_to = ?1 WHERE run_id = ?2",
@@ -12104,7 +12111,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
     #[test]
     fn case_yaml_roundtrip_assigned_to() {
         let dir = temp_dir("case_assigned_yaml");
-        let path = dir.join("TC-1.yaml");
+        let path = dir.join("TC-1.md");
         let detail = models::YamlCaseDetail {
             case_id: "TC-1".to_string(),
             title: Some("Title".to_string()),
@@ -12137,7 +12144,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
         init_schema(&conn).unwrap();
         let repo = "repo1";
         let run_id = "run-assign";
-        let fp = ".gitoza/test/cases/a/case.yaml";
+        let fp = ".gitoza/test/cases/a/case.md";
         seed_test_run_header(&conn, repo, run_id);
         conn.execute(
             "UPDATE test_runs SET assigned_to = ?1 WHERE run_id = ?2",
@@ -12200,7 +12207,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
         let parent = git_stdout_sync(&repo, &["rev-parse", "HEAD"]);
 
         // Upstream commit A (machine A ticket).
-        let a_ticket = ".gitoza/tasks/tickets/demo/AAA-1.yaml";
+        let a_ticket = ".gitoza/tasks/tickets/demo/AAA-1.md";
         fs::create_dir_all(repo.join(".gitoza/tasks/tickets/demo")).unwrap();
         fs::write(
             repo.join(a_ticket),
@@ -12213,7 +12220,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
 
         // Local commit B from parent (machine B ticket), then rebase onto A.
         git_ok(&repo, &["checkout", "-b", "local-b", &parent]);
-        let b_ticket = ".gitoza/tasks/tickets/demo/BBB-1.yaml";
+        let b_ticket = ".gitoza/tasks/tickets/demo/BBB-1.md";
         fs::create_dir_all(repo.join(".gitoza/tasks/tickets/demo")).unwrap();
         fs::write(
             repo.join(b_ticket),
@@ -12305,12 +12312,12 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
         git_ok(&repo_path, &["checkout", "-b", "main"]);
         write_min_case_yaml(
             &repo_path,
-            ".gitoza/test/cases/alpha.gitoza.test/suite/case-a.yaml",
+            ".gitoza/test/cases/alpha.gitoza.test/suite/case-a.md",
             "Case A",
         );
         write_min_ticket_yaml(
             &repo_path,
-            ".gitoza/tasks/tickets/demo/AAA-1.yaml",
+            ".gitoza/tasks/tickets/demo/AAA-1.md",
             "Ticket A",
         );
         git_ok(&repo_path, &["add", "."]);
@@ -12378,7 +12385,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
 
         write_min_ticket_yaml(
             &repo_path,
-            ".gitoza/tasks/tickets/demo/BBB-1.yaml",
+            ".gitoza/tasks/tickets/demo/BBB-1.md",
             "Ticket B",
         );
         git_ok(&repo_path, &["add", "."]);
@@ -12410,7 +12417,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
             .await
             .expect("cold");
 
-        let rel = ".gitoza/tasks/tickets/demo/CCC-1.yaml";
+        let rel = ".gitoza/tasks/tickets/demo/CCC-1.md";
         write_min_ticket_yaml(&repo_path, rel, "Ticket C");
         {
             let conn_arc = open_repo_db(&state, &slug).unwrap();
@@ -12648,27 +12655,27 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
     #[test]
     fn commit_label_from_path_extracts_entity_ids() {
         assert_eq!(
-            commit_label_from_path(".gitoza/test/cases/auth/login/TC-001.yaml").as_deref(),
+            commit_label_from_path(".gitoza/test/cases/auth/login/TC-001.md").as_deref(),
             Some("TC-001")
         );
         assert_eq!(
-            commit_label_from_path(".gitoza/tasks/tickets/demo/DEMO-A3F9K2.yaml").as_deref(),
+            commit_label_from_path(".gitoza/tasks/tickets/demo/DEMO-A3F9K2.md").as_deref(),
             Some("DEMO-A3F9K2")
         );
         assert_eq!(
-            commit_label_from_path(".gitoza/tasks/tickets/demo/releases/1.1.0.yaml").as_deref(),
+            commit_label_from_path(".gitoza/tasks/tickets/demo/releases/1.1.0.md").as_deref(),
             Some("demo/1.1.0")
         );
         assert_eq!(
-            commit_label_from_path(".gitoza/wiki/architecture/data/W-ABC123.yaml").as_deref(),
+            commit_label_from_path(".gitoza/wiki/architecture/data/W-ABC123.md").as_deref(),
             Some("W-ABC123")
         );
         assert_eq!(
-            commit_label_from_path(".gitoza/test/runs/R-XYZ789/head.yaml").as_deref(),
+            commit_label_from_path(".gitoza/test/runs/R-XYZ789/head.md").as_deref(),
             Some("R-XYZ789")
         );
         assert_eq!(
-            commit_label_from_path(".gitoza/test/runs/.archive/old_run/results.yaml").as_deref(),
+            commit_label_from_path(".gitoza/test/runs/.archive/old_run/results.md").as_deref(),
             Some("old_run")
         );
         assert_eq!(
@@ -12680,7 +12687,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
             Some("config")
         );
         assert_eq!(
-            commit_label_from_path(".gitoza/tasks/tickets/demo/.project.yaml"),
+            commit_label_from_path(".gitoza/tasks/tickets/demo/.project.md"),
             None
         );
     }
@@ -12688,9 +12695,9 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
     #[test]
     fn format_auto_sync_commit_message_dedupes_run_shards() {
         let msg = format_auto_sync_commit_message(&[
-            ".gitoza/test/runs/R-ABC/head.yaml",
-            ".gitoza/test/runs/R-ABC/results.yaml",
-            ".gitoza/test/cases/proj/TC-001.yaml",
+            ".gitoza/test/runs/R-ABC/head.md",
+            ".gitoza/test/runs/R-ABC/results.md",
+            ".gitoza/test/cases/proj/TC-001.md",
         ])
         .unwrap();
         assert_eq!(msg, "Auto-sync: R-ABC, TC-001");
@@ -12699,7 +12706,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
     #[test]
     fn format_auto_sync_commit_message_lists_up_to_eight_labels() {
         let paths: Vec<String> = (1..=8)
-            .map(|i| format!(".gitoza/test/cases/p/TC-{i:03}.yaml"))
+            .map(|i| format!(".gitoza/test/cases/p/TC-{i:03}.md"))
             .collect();
         let refs: Vec<&str> = paths.iter().map(|s| s.as_str()).collect();
         let msg = format_auto_sync_commit_message(&refs).unwrap();
@@ -12712,7 +12719,7 @@ VALUES (?1, ?2, ?3, 'C1', '', '2020-01-01T00:00:00Z', 'Case A')
     #[test]
     fn format_auto_sync_commit_message_counts_when_over_threshold() {
         let paths: Vec<String> = (1..=9)
-            .map(|i| format!(".gitoza/test/cases/p/TC-{i:03}.yaml"))
+            .map(|i| format!(".gitoza/test/cases/p/TC-{i:03}.md"))
             .collect();
         let refs: Vec<&str> = paths.iter().map(|s| s.as_str()).collect();
         let msg = format_auto_sync_commit_message(&refs).unwrap();

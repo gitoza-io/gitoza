@@ -1,5 +1,5 @@
-import { isTicketYamlPath, ticketBreadcrumbLabel } from "../constants/ticketPaths";
-import { isWikiYamlPath, wikiBreadcrumbLabel } from "../constants/wikiPaths";
+import { isTicketDocPath, ticketBreadcrumbLabel } from "../constants/ticketPaths";
+import { isWikiDocPath, wikiBreadcrumbLabel } from "../constants/wikiPaths";
 
 const CASES_PREFIX = ".gitoza/test/cases/";
 const RUNS_PREFIX = ".gitoza/test/runs/";
@@ -21,11 +21,11 @@ export function isTemplateFile(path) {
 }
 
 export function isTicketFile(path) {
-  return isTicketYamlPath(path);
+  return isTicketDocPath(path);
 }
 
 export function isWikiFile(path) {
-  return isWikiYamlPath(path);
+  return isWikiDocPath(path);
 }
 
 export function isConfigFile(path) {
@@ -46,11 +46,11 @@ export function getConflictEntityKind(filePath) {
 export function pathLeafName(filePath) {
   const normalized = (filePath || "").replace(/\\/g, "/");
   const base = normalized.split("/").pop() || normalized;
-  return base.replace(/\.(ya?ml|md)$/i, "") || filePath;
+  return base.replace(/\.md$/i, "") || filePath;
 }
 
 export function caseMetaFromPath(filePath) {
-  const normalized = (filePath || "").replace(/\\/g, "/").replace(/\.ya?ml$/i, "");
+  const normalized = (filePath || "").replace(/\\/g, "/").replace(/\.md$/i, "");
   const withoutPrefix = normalized.startsWith(CASES_PREFIX)
     ? normalized.slice(CASES_PREFIX.length)
     : normalized;
@@ -60,7 +60,7 @@ export function caseMetaFromPath(filePath) {
 }
 
 export function runDisplayName(filePath) {
-  const normalized = (filePath || "").replace(/\\/g, "/").replace(/\.ya?ml$/i, "");
+  const normalized = (filePath || "").replace(/\\/g, "/").replace(/\.md$/i, "");
   if (normalized.startsWith(RUNS_PREFIX)) {
     const name = normalized.slice(RUNS_PREFIX.length);
     return name.replace(/_/g, " ") || filePath;

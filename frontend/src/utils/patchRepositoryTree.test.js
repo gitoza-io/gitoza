@@ -64,8 +64,8 @@ describe("folderDisplayNameFromSanitized", () => {
 describe("remapPathUnderPrefix", () => {
   it("remaps exact match and descendants", () => {
     expect(remapPathUnderPrefix(SUITE, SUITE, `${PROJECT}/sign_in`)).toBe(`${PROJECT}/sign_in`);
-    expect(remapPathUnderPrefix(`${SUITE}/case.yaml`, SUITE, `${PROJECT}/sign_in`)).toBe(
-      `${PROJECT}/sign_in/case.yaml`,
+    expect(remapPathUnderPrefix(`${SUITE}/case.md`, SUITE, `${PROJECT}/sign_in`)).toBe(
+      `${PROJECT}/sign_in/case.md`,
     );
     expect(remapPathUnderPrefix(`${PROJECT}/other`, SUITE, `${PROJECT}/sign_in`)).toBe(
       `${PROJECT}/other`,
@@ -163,7 +163,7 @@ function makeTreeWithCounts(projectCount = 2, suiteCount = 1) {
 
 describe("patchRepositoryTreeForCaseAdditions", () => {
   it("increments case_count on project and containing suite", () => {
-    const filePath = `${SUITE}/new_case.yaml`;
+    const filePath = `${SUITE}/new_case.md`;
     const { tree, missingPrefixes } = patchRepositoryTreeForCaseAdditions(makeTree(), [filePath]);
     expect(missingPrefixes).toEqual([]);
     expect(tree[0].case_count).toBe(1);
@@ -171,7 +171,7 @@ describe("patchRepositoryTreeForCaseAdditions", () => {
   });
 
   it("reports missingPrefixes when tree has no matching nodes", () => {
-    const filePath = `${PROJECT}/orphan/case.yaml`;
+    const filePath = `${PROJECT}/orphan/case.md`;
     const { tree, missingPrefixes } = patchRepositoryTreeForCaseAdditions([], [filePath]);
     expect(tree).toEqual([]);
     expect(missingPrefixes).toEqual([PROJECT]);
@@ -215,7 +215,7 @@ describe("patchRepositoryTreeForFolderDelete", () => {
 
 describe("patchRepositoryTreeForCaseRemovals", () => {
   it("decrements case_count on project and containing suite", () => {
-    const filePath = `${SUITE}/case.yaml`;
+    const filePath = `${SUITE}/case.md`;
     const { tree, missingPrefixes } = patchRepositoryTreeForCaseRemovals(makeTreeWithCounts(), [
       filePath,
     ]);
@@ -225,14 +225,14 @@ describe("patchRepositoryTreeForCaseRemovals", () => {
   });
 
   it("clamps case_count at zero", () => {
-    const filePath = `${SUITE}/case.yaml`;
+    const filePath = `${SUITE}/case.md`;
     const { tree } = patchRepositoryTreeForCaseRemovals(makeTreeWithCounts(0, 0), [filePath]);
     expect(tree[0].case_count).toBe(0);
     expect(tree[0].children[0].case_count).toBe(0);
   });
 
   it("reports missingPrefixes when tree has no matching nodes", () => {
-    const filePath = `${PROJECT}/orphan/case.yaml`;
+    const filePath = `${PROJECT}/orphan/case.md`;
     const { tree, missingPrefixes } = patchRepositoryTreeForCaseRemovals([], [filePath]);
     expect(tree).toEqual([]);
     expect(missingPrefixes).toEqual([PROJECT]);
@@ -241,7 +241,7 @@ describe("patchRepositoryTreeForCaseRemovals", () => {
 
 describe("patchRepositoryTreeForArchiveCaseRemovals", () => {
   it("removes project when last archived case is restored", () => {
-    const filePath = `${SUITE}/case.yaml`;
+    const filePath = `${SUITE}/case.md`;
     const { tree } = patchRepositoryTreeForArchiveCaseRemovals(makeTreeWithCounts(1, 1), [
       filePath,
     ]);
@@ -250,7 +250,7 @@ describe("patchRepositoryTreeForArchiveCaseRemovals", () => {
 
   it("keeps project when cases remain", () => {
     const tree = makeTreeWithCounts(2, 2);
-    const { tree: next } = patchRepositoryTreeForArchiveCaseRemovals(tree, [`${SUITE}/case.yaml`]);
+    const { tree: next } = patchRepositoryTreeForArchiveCaseRemovals(tree, [`${SUITE}/case.md`]);
     expect(next).toHaveLength(1);
     expect(next[0].case_count).toBe(1);
     expect(next[0].children[0].case_count).toBe(1);
@@ -259,14 +259,14 @@ describe("patchRepositoryTreeForArchiveCaseRemovals", () => {
 
 describe("patchRepositoryTreeForActiveCaseRemovals", () => {
   it("removes project when last active case in only suite is archived", () => {
-    const filePath = `${SUITE}/case.yaml`;
+    const filePath = `${SUITE}/case.md`;
     const { tree } = patchRepositoryTreeForActiveCaseRemovals(makeTreeWithCounts(1, 1), [filePath]);
     expect(tree).toEqual([]);
   });
 
   it("keeps project and suite when cases remain", () => {
     const tree = makeTreeWithCounts(2, 2);
-    const { tree: next } = patchRepositoryTreeForActiveCaseRemovals(tree, [`${SUITE}/case.yaml`]);
+    const { tree: next } = patchRepositoryTreeForActiveCaseRemovals(tree, [`${SUITE}/case.md`]);
     expect(next).toHaveLength(1);
     expect(next[0].case_count).toBe(1);
     expect(next[0].children[0].case_count).toBe(1);
@@ -275,8 +275,8 @@ describe("patchRepositoryTreeForActiveCaseRemovals", () => {
   it("prunes suite and project when bulk archiving all cases in suite", () => {
     const tree = makeTreeWithCounts(2, 2);
     const { tree: next } = patchRepositoryTreeForActiveCaseRemovals(tree, [
-      `${SUITE}/case_a.yaml`,
-      `${SUITE}/case_b.yaml`,
+      `${SUITE}/case_a.md`,
+      `${SUITE}/case_b.md`,
     ]);
     expect(next).toEqual([]);
   });

@@ -111,9 +111,9 @@ describe("useCasePointerDrag", () => {
     });
 
     const dragMeta = {
-      paths: [".gitoza/test/cases/auth/source/case.yaml"],
+      paths: [".gitoza/test/cases/auth/source/case.md"],
       summaryLine: "1 case",
-      detailLine: "case.yaml",
+      detailLine: "case.md",
     };
 
     act(() => {
@@ -156,7 +156,7 @@ describe("useCasePointerDrag", () => {
     });
 
     expect(onMoveCasesToFolder).toHaveBeenCalledWith(
-      [".gitoza/test/cases/auth/source/case.yaml"],
+      [".gitoza/test/cases/auth/source/case.md"],
       ".gitoza/test/cases/auth/target",
     );
 

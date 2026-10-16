@@ -117,6 +117,31 @@ function clampScale(value) {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
 }
 
+/** In-memory SVG cache so revisiting the same chart+theme paints immediately. */
+const svgCache = new Map();
+
+function mermaidCacheKey(source, isDark) {
+  return `${isDark ? "dark" : "light"}|${source}`;
+}
+
+/**
+ * Shared off-screen host so mermaid.render never appends a visible temp node to body.
+ * Each render gets its own child container to avoid concurrent-render races.
+ */
+let mermaidRenderHost = null;
+
+function getMermaidRenderHost() {
+  if (typeof document === "undefined") return null;
+  if (!mermaidRenderHost || !mermaidRenderHost.isConnected) {
+    mermaidRenderHost = document.createElement("div");
+    mermaidRenderHost.setAttribute("aria-hidden", "true");
+    mermaidRenderHost.style.cssText =
+      "position:absolute;left:-9999px;top:0;width:0;height:0;overflow:hidden;pointer-events:none;";
+    document.body.appendChild(mermaidRenderHost);
+  }
+  return mermaidRenderHost;
+}
+
 /**
  * Natural pixel size of a Mermaid SVG (ignores CSS max-width shrink-to-fit).
  */
@@ -153,9 +178,13 @@ function getSvgNaturalSize(svgEl) {
  */
 function MermaidBlock({ chart }) {
   const reactId = useId().replace(/:/g, "");
-  const [svg, setSvg] = useState("");
-  const [error, setError] = useState(null);
   const [dark, setDark] = useState(isDarkTheme);
+  const [svg, setSvg] = useState(() => {
+    const source = String(chart ?? "").trim();
+    if (!source) return "";
+    return svgCache.get(mermaidCacheKey(source, isDarkTheme())) || "";
+  });
+  const [error, setError] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
@@ -182,7 +211,8 @@ function MermaidBlock({ chart }) {
     return () => obs.disconnect();
   }, []);
 
-  useEffect(() => {
+  // Layout effect: apply cache / clear stale SVG before paint; render into a hidden host.
+  useLayoutEffect(() => {
     let cancelled = false;
     const source = String(chart ?? "").trim();
     if (!source) {
@@ -190,11 +220,31 @@ function MermaidBlock({ chart }) {
       setError(null);
       return undefined;
     }
+
+    const key = mermaidCacheKey(source, dark);
+    const cached = svgCache.get(key);
+    if (cached) {
+      setSvg(cached);
+      setError(null);
+      return undefined;
+    }
+
+    // Avoid showing a previous diagram (or body-temp flash) while the new one renders.
+    setSvg("");
+    setError(null);
+
+    const host = getMermaidRenderHost();
+    if (!host) return undefined;
+
+    const container = document.createElement("div");
+    host.appendChild(container);
+
     initMermaid(dark);
     const renderId = `gitoza-mermaid-${reactId}-${dark ? "dark" : "light"}`;
     mermaid
-      .render(renderId, source)
+      .render(renderId, source, container)
       .then((result) => {
+        svgCache.set(key, result.svg);
         if (!cancelled) {
           setSvg(result.svg);
           setError(null);
@@ -205,7 +255,11 @@ function MermaidBlock({ chart }) {
           setSvg("");
           setError(err?.message || "Invalid Mermaid diagram");
         }
+      })
+      .finally(() => {
+        container.remove();
       });
+
     return () => {
       cancelled = true;
     };

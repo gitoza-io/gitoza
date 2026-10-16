@@ -38,15 +38,15 @@ describe("browseFolderKey", () => {
 describe("filterCasesByMembership", () => {
   it("filters rows not in cachedCases", () => {
     const cases = [
-      { file_path: "a.yaml" },
-      { file_path: "b.yaml" },
+      { file_path: "a.md" },
+      { file_path: "b.md" },
     ];
-    const cached = [{ file_path: "a.yaml" }];
-    expect(filterCasesByMembership(cases, cached)).toEqual([{ file_path: "a.yaml" }]);
+    const cached = [{ file_path: "a.md" }];
+    expect(filterCasesByMembership(cases, cached)).toEqual([{ file_path: "a.md" }]);
   });
 
   it("passes through when cachedCases is undefined", () => {
-    const cases = [{ file_path: "a.yaml" }];
+    const cases = [{ file_path: "a.md" }];
     expect(filterCasesByMembership(cases, undefined)).toEqual(cases);
   });
 });
@@ -60,20 +60,20 @@ describe("patchPageCacheRemovePaths", () => {
     const cache = {
       [key1]: {
         items: [
-          { file_path: "a.yaml" },
-          { file_path: "b.yaml" },
+          { file_path: "a.md" },
+          { file_path: "b.md" },
         ],
         total: 5,
       },
       [key2]: {
-        items: [{ file_path: "a.yaml" }],
+        items: [{ file_path: "a.md" }],
         total: 1,
       },
     };
 
-    const next = patchPageCacheRemovePaths(cache, runId, ["b.yaml"]);
+    const next = patchPageCacheRemovePaths(cache, runId, ["b.md"]);
 
-    expect(next[key1].items).toEqual([{ file_path: "a.yaml" }]);
+    expect(next[key1].items).toEqual([{ file_path: "a.md" }]);
     expect(next[key1].total).toBe(4);
     expect(next[key2]).toEqual(cache[key2]);
   });
@@ -83,15 +83,15 @@ describe("applyMembershipToStale", () => {
   it("filters stale cases and decrements total", () => {
     const stale = {
       cases: [
-        { file_path: "a.yaml" },
-        { file_path: "b.yaml" },
+        { file_path: "a.md" },
+        { file_path: "b.md" },
       ],
       total: 10,
     };
-    const cached = [{ file_path: "a.yaml" }];
+    const cached = [{ file_path: "a.md" }];
 
     expect(applyMembershipToStale(stale, cached)).toEqual({
-      cases: [{ file_path: "a.yaml" }],
+      cases: [{ file_path: "a.md" }],
       total: 9,
     });
   });
@@ -99,7 +99,7 @@ describe("applyMembershipToStale", () => {
 
 describe("resolveBrowseListDisplay", () => {
   const stale = {
-    cases: [{ file_path: "a.yaml", result: "passed" }],
+    cases: [{ file_path: "a.md", result: "passed" }],
     total: 10,
   };
 
@@ -119,7 +119,7 @@ describe("resolveBrowseListDisplay", () => {
   });
 
   it("uses display cases when loaded", () => {
-    const display = [{ file_path: "b.yaml", result: "pending" }];
+    const display = [{ file_path: "b.md", result: "pending" }];
     const result = resolveBrowseListDisplay({
       displayCases: display,
       displayTotal: 5,
@@ -159,12 +159,12 @@ describe("resolveBrowseListDisplay", () => {
   it("filters stale ghost rows by cachedCases membership", () => {
     const ghostStale = {
       cases: [
-        { file_path: "a.yaml", result: "passed" },
-        { file_path: "removed.yaml", result: "pending" },
+        { file_path: "a.md", result: "passed" },
+        { file_path: "removed.md", result: "pending" },
       ],
       total: 10,
     };
-    const cached = [{ file_path: "a.yaml", result: "passed" }];
+    const cached = [{ file_path: "a.md", result: "passed" }];
 
     const result = resolveBrowseListDisplay({
       displayCases: [],
@@ -176,13 +176,13 @@ describe("resolveBrowseListDisplay", () => {
     });
 
     expect(result.showStale).toBe(true);
-    expect(result.casesForList).toEqual([{ file_path: "a.yaml", result: "passed" }]);
+    expect(result.casesForList).toEqual([{ file_path: "a.md", result: "passed" }]);
     expect(result.totalForList).toBe(9);
   });
 
   it("shows loading when membership filters all stale rows", () => {
     const ghostStale = {
-      cases: [{ file_path: "removed.yaml", result: "pending" }],
+      cases: [{ file_path: "removed.md", result: "pending" }],
       total: 5,
     };
 

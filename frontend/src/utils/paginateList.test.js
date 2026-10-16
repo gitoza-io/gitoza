@@ -39,11 +39,11 @@ describe("paginateList", () => {
 
 describe("paginateGroupedCaseListEntries", () => {
   const entries = [
-    { type: "case", item: { file_path: "a.yaml", case_id: "A" } },
+    { type: "case", item: { file_path: "a.md", case_id: "A" } },
     { type: "suiteHeader", directoryPath: "suite", label: "Suite", depth: 0 },
     ...Array.from({ length: 55 }, (_, i) => ({
       type: "case",
-      item: { file_path: `suite/c-${i}.yaml`, case_id: `C-${i}` },
+      item: { file_path: `suite/c-${i}.md`, case_id: `C-${i}` },
     })),
   ];
 

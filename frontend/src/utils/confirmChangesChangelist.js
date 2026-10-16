@@ -4,11 +4,11 @@ import {
   formatRunGroupSubtitle,
   runGroupFallbackLabel,
 } from "./confirmChangesRunGroups";
-import { isTicketYamlPath, ticketLeafIdFromPath } from "../constants/ticketPaths";
+import { isTicketDocPath, ticketLeafIdFromPath } from "../constants/ticketPaths";
 import {
   isWikiGitkeepPath,
   isWikiTrackedPath,
-  isWikiYamlPath,
+  isWikiDocPath,
   wikiGitkeepFolderLabel,
   wikiPageIdFromPath,
 } from "../constants/wikiPaths";
@@ -213,8 +213,8 @@ export function buildConfirmChangelistEntries({
       const path = normalizePath(change.path);
       const row = rowByPath.get(path) ?? {
         file_path: path,
-        case_id: path.split("/").pop()?.replace(/\.ya?ml$/i, "") ?? path,
-        title: path.split("/").pop()?.replace(/\.ya?ml$/i, "") ?? path,
+        case_id: path.split("/").pop()?.replace(/\.md$/i, "") ?? path,
+        title: path.split("/").pop()?.replace(/\.md$/i, "") ?? path,
       };
       entries.push({
         kind: "case",
@@ -247,14 +247,14 @@ export function buildConfirmChangelistEntries({
 
   const statusByTicketPath = new Map();
   for (const change of ticketChanges) {
-    if (!change?.path || !isTicketYamlPath(change.path)) continue;
+    if (!change?.path || !isTicketDocPath(change.path)) continue;
     statusByTicketPath.set(normalizePath(change.path), {
       status: (change.status || "M").toUpperCase(),
       old_path: change.old_path ? normalizePath(change.old_path) : null,
     });
   }
   const ticketPathSet = new Set([
-    ...ticketFiles.filter(isTicketYamlPath).map(normalizePath),
+    ...ticketFiles.filter(isTicketDocPath).map(normalizePath),
     ...statusByTicketPath.keys(),
   ]);
   const tickets = [...ticketPathSet].sort();
@@ -313,7 +313,7 @@ export function buildConfirmChangelistEntries({
         });
         continue;
       }
-      if (!isWikiYamlPath(path)) continue;
+      if (!isWikiDocPath(path)) continue;
       const leaf = wikiPageIdFromPath(path);
       const hydrated = wikiMetaByPath[path] ?? {};
       const pageId = (hydrated.page_id || leaf).trim() || leaf;

@@ -40,7 +40,7 @@ export function getRenameConflictDisplayName(params) {
   if (params.kind === "folder") {
     return params.newName.trim();
   }
-  const extMatch = params.filePath.match(/\.(ya?ml)$/i);
-  const ext = extMatch ? extMatch[0] : ".yaml";
+  const extMatch = params.filePath.match(/\.md$/i);
+  const ext = extMatch ? extMatch[0] : ".md";
   return `${params.newName.trim()}${ext}`;
 }

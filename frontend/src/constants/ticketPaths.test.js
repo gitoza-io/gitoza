@@ -7,8 +7,8 @@ import {
 } from "./ticketPaths";
 
 describe("ticketProjectDirFromPath", () => {
-  it("returns project dir for a ticket yaml", () => {
-    expect(ticketProjectDirFromPath(`${TICKETS_ROOT}/alpha/A-1.yaml`)).toBe(
+  it("returns project dir for a ticket doc", () => {
+    expect(ticketProjectDirFromPath(`${TICKETS_ROOT}/alpha/A-1.md`)).toBe(
       `${TICKETS_ROOT}/alpha`,
     );
   });
@@ -24,7 +24,7 @@ describe("ticketProjectDirFromPath", () => {
 });
 
 describe("projectFocusForTicketOpen", () => {
-  const ticketB = `${TICKETS_ROOT}/bravo/B-1.yaml`;
+  const ticketB = `${TICKETS_ROOT}/bravo/B-1.md`;
   const projectA = `${TICKETS_ROOT}/alpha`;
   const projectB = `${TICKETS_ROOT}/bravo`;
 
@@ -51,7 +51,7 @@ describe("projectFocusForTicketOpen", () => {
 });
 
 describe("retain selection after cross-project open (documented contract)", () => {
-  const ticketB = `${TICKETS_ROOT}/bravo/B-1.yaml`;
+  const ticketB = `${TICKETS_ROOT}/bravo/B-1.md`;
   const projectA = `${TICKETS_ROOT}/alpha`;
   const projectB = `${TICKETS_ROOT}/bravo`;
 

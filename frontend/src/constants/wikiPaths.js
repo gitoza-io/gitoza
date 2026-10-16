@@ -31,13 +31,13 @@ export function isArchivedWikiFolderPath(directoryPath) {
 }
 
 /**
- * True when path is a wiki YAML under `.gitoza/wiki/`.
+ * True when path is a wiki doc under `.gitoza/wiki/`.
  * @param {string} path
  */
-export function isWikiYamlPath(path) {
+export function isWikiDocPath(path) {
   const fp = normalizeRepoPath(path);
   if (!fp.startsWith(`${WIKI_ROOT}/`) && fp !== `${WIKI_ROOT}`) return false;
-  return /\.ya?ml$/i.test(fp);
+  return /\.md$/i.test(fp);
 }
 
 /**
@@ -55,29 +55,29 @@ export function isWikiGitkeepPath(path) {
  * @param {string} path
  */
 export function isWikiTrackedPath(path) {
-  return isWikiYamlPath(path) || isWikiGitkeepPath(path);
+  return isWikiDocPath(path) || isWikiGitkeepPath(path);
 }
 
 /**
- * Page id stem from a wiki YAML path (filename without extension).
+ * Page id stem from a wiki doc path (filename without extension).
  * @param {string} filePath
  * @returns {string}
  */
 export function wikiPageIdFromPath(filePath) {
   const fp = normalizeRepoPath(filePath);
-  return (fp.split("/").pop() || fp).replace(/\.ya?ml$/i, "") || fp;
+  return (fp.split("/").pop() || fp).replace(/\.md$/i, "") || fp;
 }
 
 /**
  * Display label for Confirm / conflict sidebars (nested folders joined with ›).
- * Example: `.gitoza/wiki/architecture/data/model.yaml` → `architecture › data › model`.
+ * Example: `.gitoza/wiki/architecture/data/model.md` → `architecture › data › model`.
  * @param {string} filePath
  */
 export function wikiBreadcrumbLabel(filePath) {
   const fp = normalizeRepoPath(filePath);
   const prefix = `${WIKI_ROOT}/`;
   const rest = fp.startsWith(prefix) ? fp.slice(prefix.length) : fp;
-  const withoutExt = rest.replace(/\.ya?ml$/i, "");
+  const withoutExt = rest.replace(/\.md$/i, "");
   const parts = withoutExt.split("/").filter(Boolean);
   return parts.length > 0 ? parts.join(" › ") : withoutExt || fp;
 }
@@ -164,7 +164,7 @@ export function wikiFolderFromPath(path) {
   const fp = normalizeRepoPath(path);
   if (fp === WIKI_ROOT) return WIKI_ROOT;
   if (!fp.startsWith(`${WIKI_ROOT}/`)) return null;
-  if (/\.ya?ml$/i.test(fp)) {
+  if (/\.md$/i.test(fp)) {
     const idx = fp.lastIndexOf("/");
     return idx > 0 ? fp.slice(0, idx) : WIKI_ROOT;
   }
@@ -172,14 +172,14 @@ export function wikiFolderFromPath(path) {
 }
 
 /**
- * True when path is a wiki folder (not a YAML page).
+ * True when path is a wiki folder (not a Markdown page).
  * @param {string} path
  */
 export function isWikiFolderPath(path) {
   const fp = normalizeRepoPath(path);
   if (fp === WIKI_ROOT || fp === WIKI_ARCHIVE_ROOT) return true;
   if (!fp.startsWith(`${WIKI_ROOT}/`)) return false;
-  return !/\.ya?ml$/i.test(fp);
+  return !/\.md$/i.test(fp);
 }
 
 /**

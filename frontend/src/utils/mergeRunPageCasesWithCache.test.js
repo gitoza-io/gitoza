@@ -3,7 +3,7 @@ import { mergeRunPageCasesWithCache } from "./mergeRunPageCasesWithCache";
 
 describe("mergeRunPageCasesWithCache", () => {
   const pageItem = {
-    file_path: ".gitoza/test/cases/a/c1.yaml",
+    file_path: ".gitoza/test/cases/a/c1.md",
     case_id: "C1",
     title: "Case One",
     result: "pending",
@@ -31,7 +31,7 @@ describe("mergeRunPageCasesWithCache", () => {
 
   it("filters page rows removed from cache", () => {
     const other = {
-      file_path: ".gitoza/test/cases/a/c2.yaml",
+      file_path: ".gitoza/test/cases/a/c2.md",
       case_id: "C2",
       title: "Case Two",
       result: "pending",

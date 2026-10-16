@@ -12,6 +12,32 @@ pub const PLAYGROUND_SLUG: &str = "playground";
 /// Relative path to the workspace kind marker inside a repo root.
 pub const WORKSPACE_MARKER_REL: &str = ".gitoza/workspace.json";
 
+/// Extension for workspace documents (cases, tickets, wiki, releases, run shards).
+/// Content is Markdown with YAML frontmatter (run shards / project meta are frontmatter-only).
+pub const WORKSPACE_DOC_EXT: &str = "md";
+
+/// Filename suffix including the leading dot (`".md"`).
+pub const WORKSPACE_DOC_SUFFIX: &str = ".md";
+
+/// Ticket project metadata filename under `.gitoza/tasks/tickets/{project}/`.
+pub const PROJECT_META_FILE: &str = ".project.md";
+
+/// True when `ext` is the workspace document extension (no leading dot).
+pub fn is_workspace_doc_ext(ext: &str) -> bool {
+    ext.eq_ignore_ascii_case(WORKSPACE_DOC_EXT)
+}
+
+/// True when `name` ends with `.md` (case-insensitive).
+pub fn has_workspace_doc_ext(name: &str) -> bool {
+    name.to_ascii_lowercase()
+        .ends_with(WORKSPACE_DOC_SUFFIX)
+}
+
+/// Join a stem with the workspace doc suffix, e.g. `DEMO-1` → `DEMO-1.md`.
+pub fn workspace_doc_filename(stem: &str) -> String {
+    format!("{stem}{WORKSPACE_DOC_SUFFIX}")
+}
+
 /// User home directory: `HOME`, then `USERPROFILE` on Windows, else `"."`.
 pub fn user_home_dir() -> PathBuf {
     if let Some(home) = std::env::var_os("HOME") {

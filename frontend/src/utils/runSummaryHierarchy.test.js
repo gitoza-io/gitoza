@@ -52,8 +52,8 @@ describe("buildRunSummaryRollup", () => {
 
   it("rolls up suite stats to project", () => {
     const rollup = buildRunSummaryRollup([
-      { file_path: `${NESTED_SUITE}/a.yaml`, case_id: "TC-1", result: "passed" },
-      { file_path: `${NESTED_SUITE}/b.yaml`, case_id: "TC-2", result: "failed" },
+      { file_path: `${NESTED_SUITE}/a.md`, case_id: "TC-1", result: "passed" },
+      { file_path: `${NESTED_SUITE}/b.md`, case_id: "TC-2", result: "failed" },
     ]);
     expect(rollup).toHaveLength(1);
     const project = rollup[0];
@@ -78,8 +78,8 @@ describe("buildRunSummaryRollup", () => {
 
   it("includes direct project-level cases in project stats", () => {
     const rollup = buildRunSummaryRollup([
-      { file_path: `${PROJECT}/root.yaml`, case_id: "TC-1", result: "passed" },
-      { file_path: `${SUITE}/a.yaml`, case_id: "TC-2", result: "skipped" },
+      { file_path: `${PROJECT}/root.md`, case_id: "TC-1", result: "passed" },
+      { file_path: `${SUITE}/a.md`, case_id: "TC-2", result: "skipped" },
     ]);
     expect(rollup[0].stats).toEqual({
       totalCases: 2,
@@ -94,7 +94,7 @@ describe("buildRunSummaryRollup", () => {
 
   it("does not include cases arrays on rollup nodes", () => {
     const rollup = buildRunSummaryRollup([
-      { file_path: `${SUITE}/a.yaml`, case_id: "TC-1", result: "passed" },
+      { file_path: `${SUITE}/a.md`, case_id: "TC-1", result: "passed" },
     ]);
     expect(rollup[0].cases).toBeUndefined();
     expect(rollup[0].children[0].cases).toBeUndefined();

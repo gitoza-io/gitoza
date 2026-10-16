@@ -259,11 +259,11 @@ CREATE TABLE project_feature_flags (
     #[test]
     fn paths_include_project_config_detects_rel() {
         assert!(paths_include_project_config(&[
-            ".gitoza/test/cases/a.yaml".into(),
+            ".gitoza/test/cases/a.md".into(),
             ".gitoza/config.json".into(),
         ]));
         assert!(!paths_include_project_config(&[
-            ".gitoza/test/cases/a.yaml".into(),
+            ".gitoza/test/cases/a.md".into(),
         ]));
     }
 

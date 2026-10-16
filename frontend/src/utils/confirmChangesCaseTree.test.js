@@ -43,17 +43,17 @@ const repositoryTree = [
 ];
 
 const changedPaths = [
-  ".gitoza/test/cases/auth/login.yaml",
-  ".gitoza/test/cases/auth/debug/smoke.yaml",
-  ".gitoza/test/cases/auth/debug/edge.yaml",
+  ".gitoza/test/cases/auth/login.md",
+  ".gitoza/test/cases/auth/debug/smoke.md",
+  ".gitoza/test/cases/auth/debug/edge.md",
 ];
 
 describe("pathsToMinimalCaseRows", () => {
   it("maps paths to minimal rows without IPC", () => {
-    const rows = pathsToMinimalCaseRows([".gitoza/test/cases/auth/login.yaml"]);
+    const rows = pathsToMinimalCaseRows([".gitoza/test/cases/auth/login.md"]);
     expect(rows).toEqual([
       {
-        file_path: ".gitoza/test/cases/auth/login.yaml",
+        file_path: ".gitoza/test/cases/auth/login.md",
         case_id: "login",
         title: "login",
       },
@@ -65,11 +65,11 @@ describe("buildChangedCasesFolderTree", () => {
   it("prunes folders with zero changed cases", () => {
     const tree = buildChangedCasesFolderTree(repositoryTree, changedPaths);
     expect(tree.map((n) => n.directory_path)).toEqual([".gitoza/test/cases/auth"]);
-    // login.yaml lives directly under auth; the empty login/ suite folder is pruned
+    // login.md lives directly under auth; the empty login/ suite folder is pruned
     expect(tree[0].children.map((n) => n.directory_path)).toEqual([
       ".gitoza/test/cases/auth/debug",
     ]);
-    expect(tree[0].cases.map((c) => c.file_path)).toContain(".gitoza/test/cases/auth/login.yaml");
+    expect(tree[0].cases.map((c) => c.file_path)).toContain(".gitoza/test/cases/auth/login.md");
     const billing = tree.find((n) => n.directory_path === ".gitoza/test/cases/billing");
     expect(billing).toBeUndefined();
   });
@@ -101,8 +101,8 @@ describe("countChangedCasesUnderFolder", () => {
 describe("buildFolderTreeFromCasePaths", () => {
   it("builds project and nested suite folders from case paths", () => {
     const paths = [
-      ".gitoza/test/cases/billing.gitoza.test/login_suite/smoke.yaml",
-      ".gitoza/test/cases/billing.gitoza.test/login_suite/edge.yaml",
+      ".gitoza/test/cases/billing.gitoza.test/login_suite/smoke.md",
+      ".gitoza/test/cases/billing.gitoza.test/login_suite/edge.md",
     ];
     const tree = buildFolderTreeFromCasePaths(paths);
     expect(tree).toHaveLength(1);
@@ -136,8 +136,8 @@ describe("resolveChangedCasesFolderTree", () => {
       },
     ];
     const renamedPaths = [
-      ".gitoza/test/cases/billing.gitoza.test/login_suite/smoke.yaml",
-      ".gitoza/test/cases/billing.gitoza.test/login_suite/edge.yaml",
+      ".gitoza/test/cases/billing.gitoza.test/login_suite/smoke.md",
+      ".gitoza/test/cases/billing.gitoza.test/login_suite/edge.md",
     ];
     const tree = resolveChangedCasesFolderTree(staleTree, renamedPaths);
     expect(tree.map((n) => n.directory_path)).toEqual([
@@ -157,7 +157,7 @@ describe("resolveChangedCasesFolderTree", () => {
   });
 
   it("builds synthetic tree from paths when API tree is empty", () => {
-    const paths = [".gitoza/test/cases/proj.gitoza.test/suite/a.yaml"];
+    const paths = [".gitoza/test/cases/proj.gitoza.test/suite/a.md"];
     const tree = resolveChangedCasesFolderTree([], paths);
     expect(tree).toHaveLength(1);
     expect(tree[0].directory_path).toBe(".gitoza/test/cases/proj.gitoza.test");
@@ -179,7 +179,7 @@ describe("findFirstChangedCaseInFolder", () => {
   it("returns first case in suite scope", () => {
     const folderPath = ".gitoza/test/cases/auth/debug";
     expect(findFirstChangedCaseInFolder(rows, tree, folderPath)).toBe(
-      ".gitoza/test/cases/auth/debug/edge.yaml",
+      ".gitoza/test/cases/auth/debug/edge.md",
     );
   });
 });

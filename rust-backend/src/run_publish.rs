@@ -8,9 +8,9 @@ use crate::atomic_write_file;
 
 pub const RESULTS_DIR: &str = ".gitoza/test/runs";
 pub const ARCHIVE_DIR: &str = ".archive";
-pub const HEAD_FILE: &str = "head.yaml";
-pub const CASES_FILE: &str = "cases.yaml";
-pub const RESULTS_FILE: &str = "results.yaml";
+pub const HEAD_FILE: &str = "head.md";
+pub const CASES_FILE: &str = "cases.md";
+pub const RESULTS_FILE: &str = "results.md";
 
 /// Allocated run ids: `R-` + 6 alphanumeric chars (wiki-style).
 const RUN_ID_PREFIX: &str = "R";
@@ -203,55 +203,50 @@ pub fn get_run_results_rel_path(run: &Value) -> String {
 
 #[cfg(test)]
 pub fn is_run_head_rel_path(rel: &str) -> bool {
-    let r = rel.replace('\\', "/");
-    r.ends_with("/head.yaml") || r.ends_with("/head.yml")
+    rel.replace('\\', "/").ends_with(&format!("/{HEAD_FILE}"))
 }
 
 pub fn is_run_results_rel_path(rel: &str) -> bool {
-    let r = rel.replace('\\', "/");
-    r.ends_with("/results.yaml")
-        || r.ends_with("/results.yml")
-        || r.ends_with(".results.yaml")
-        || r.ends_with(".results.yml")
+    rel.replace('\\', "/")
+        .ends_with(&format!("/{RESULTS_FILE}"))
 }
 
 pub fn run_dir_from_shard_rel(rel: &str) -> Option<String> {
     let r = rel.replace('\\', "/");
-    if r.ends_with("/head.yaml") || r.ends_with("/head.yml") {
-        return Some(
-            r.trim_end_matches("/head.yaml")
-                .trim_end_matches("/head.yml")
-                .to_string(),
-        );
+    let head_suf = format!("/{HEAD_FILE}");
+    let cases_suf = format!("/{CASES_FILE}");
+    let results_suf = format!("/{RESULTS_FILE}");
+    if let Some(dir) = r.strip_suffix(&head_suf) {
+        return Some(dir.to_string());
     }
-    if r.ends_with("/cases.yaml") || r.ends_with("/cases.yml") {
-        return Some(
-            r.trim_end_matches("/cases.yaml")
-                .trim_end_matches("/cases.yml")
-                .to_string(),
-        );
+    if let Some(dir) = r.strip_suffix(&cases_suf) {
+        return Some(dir.to_string());
     }
-    if is_run_results_rel_path(&r) {
-        if r.ends_with("/results.yaml") || r.ends_with("/results.yml") {
-            return Some(
-                r.trim_end_matches("/results.yaml")
-                    .trim_end_matches("/results.yml")
-                    .to_string(),
-            );
-        }
+    if let Some(dir) = r.strip_suffix(&results_suf) {
+        return Some(dir.to_string());
     }
     None
 }
 
 const CASE_RESULT_FIELD_KEYS: &[&str] = &["result", "executed_at", "executed_by", "comment"];
 
+/// Read a run shard stored as frontmatter-only Markdown (`---` YAML `---` + empty body).
 fn read_yaml_file(repo_path: &Path, rel: &str) -> Option<Value> {
     let full = repo_path.join(rel);
     if !full.is_file() {
         return None;
     }
     let raw = std::fs::read_to_string(&full).ok()?;
-    let doc: Value = serde_yaml::from_str(&raw).ok()?;
+    let stripped = raw.trim_start();
+    if !stripped.starts_with("---") {
+        return None;
+    }
+    let rest = &stripped[3..];
+    let front_text = match rest.find("\n---") {
+        Some(idx) => &rest[..idx],
+        None => rest,
+    };
+    let doc: Value = serde_yaml::from_str(front_text).ok()?;
     if doc.is_object() {
         Some(doc)
     } else {
@@ -296,7 +291,7 @@ pub fn load_run_shards_from_disk(repo_path: &Path, run_id: &str, archived: bool)
 }
 
 /// Merge sparse results file into manifest cases for in-memory doc operations.
-/// Legacy `summary` in results.yaml is ignored — counts come from SQLite / result rows.
+/// Legacy `summary` in results.md is ignored — counts come from SQLite / result rows.
 pub fn merge_results_into_manifest(mut manifest: Value, results_doc: Option<&Value>) -> Value {
     let Some(results_doc) = results_doc else {
         return manifest;
@@ -669,6 +664,7 @@ fn json_value_to_yaml_preserving_key_order(v: &Value) -> serde_yaml::Value {
     }
 }
 
+/// Write a run shard as frontmatter-only Markdown.
 fn write_yaml_value(repo_path: &Path, rel: &str, cleaned: &Value) -> Option<()> {
     let full = repo_path.join(rel);
     if let Some(parent) = full.parent() {
@@ -676,7 +672,9 @@ fn write_yaml_value(repo_path: &Path, rel: &str, cleaned: &Value) -> Option<()> 
     }
     let yaml_val = json_value_to_yaml_preserving_key_order(cleaned);
     let yaml = serde_yaml::to_string(&yaml_val).ok()?;
-    atomic_write_file(&full, yaml.as_bytes()).ok()?;
+    let header = yaml.trim_start_matches("---\n");
+    let content = format!("---\n{header}---\n\n");
+    atomic_write_file(&full, content.as_bytes()).ok()?;
     Some(())
 }
 
@@ -1113,7 +1111,7 @@ pub fn flush_run_cases_yaml_from_db(
     Ok(true)
 }
 
-/// Export DB results to `.results.yaml`. Pending clear is handled by the caller.
+/// Export DB results to `.results.md`. Pending clear is handled by the caller.
 pub fn flush_run_results_yaml_from_db(
     repo_path: &Path,
     conn: &Connection,
@@ -1240,7 +1238,7 @@ mod tests {
         let s = serde_yaml::to_string(&yaml_val).expect("serialize");
         let lines: Vec<&str> = s.lines().collect();
         assert!(
-            lines.first().is_some_and(|l| l.starts_with("run_id:")),
+            lines.iter().any(|l| l.starts_with("run_id:")),
             "expected run_id first, got:\n{s}"
         );
         assert!(
@@ -1257,7 +1255,7 @@ mod tests {
         case.insert("title".to_string(), Value::String("My Case".to_string()));
         case.insert(
             "file_path".to_string(),
-            Value::String(".gitoza/test/cases/p/s.yaml".to_string()),
+            Value::String(".gitoza/test/cases/p/s.md".to_string()),
         );
         case.insert("case_id".to_string(), Value::String("P1".to_string()));
         case.insert("priority".to_string(), Value::String("high".to_string()));
@@ -1307,17 +1305,17 @@ mod tests {
         );
         assert_eq!(
             get_run_head_rel_path_from_run_id(rid, false),
-            ".gitoza/test/runs/R-ABC123/head.yaml"
+            ".gitoza/test/runs/R-ABC123/head.md"
         );
         assert_eq!(
             get_run_cases_rel_path_from_run_id(rid, false),
-            ".gitoza/test/runs/R-ABC123/cases.yaml"
+            ".gitoza/test/runs/R-ABC123/cases.md"
         );
         assert_eq!(
             get_run_results_rel_path_from_run_id(rid, false),
-            ".gitoza/test/runs/R-ABC123/results.yaml"
+            ".gitoza/test/runs/R-ABC123/results.md"
         );
-        assert!(is_run_head_rel_path(".gitoza/test/runs/R-ABC123/head.yaml"));
+        assert!(is_run_head_rel_path(".gitoza/test/runs/R-ABC123/head.md"));
     }
 
     #[test]
@@ -1420,7 +1418,7 @@ CREATE TABLE IF NOT EXISTS test_runs (
             "run_id": "R-ABC123",
             "summary": { "total": 2, "passed": 1, "failed": 0, "skipped": 0 },
             "results": {
-                ".gitoza/test/cases/p/a.yaml": {
+                ".gitoza/test/cases/p/a.md": {
                     "result": "passed",
                     "executed_at": "2026-01-01T00:00:00Z"
                 }
@@ -1435,7 +1433,7 @@ CREATE TABLE IF NOT EXISTS test_runs (
         assert!(cleaned
             .get("results")
             .and_then(|v| v.as_object())
-            .map(|m| m.contains_key(".gitoza/test/cases/p/a.yaml"))
+            .map(|m| m.contains_key(".gitoza/test/cases/p/a.md"))
             .unwrap_or(false));
     }
 
@@ -1444,7 +1442,7 @@ CREATE TABLE IF NOT EXISTS test_runs (
         let manifest = json!({
             "run_id": "R-1",
             "cases": [{
-                "file_path": ".gitoza/test/cases/p/a.yaml",
+                "file_path": ".gitoza/test/cases/p/a.md",
                 "case_id": "a"
             }]
         });
@@ -1452,7 +1450,7 @@ CREATE TABLE IF NOT EXISTS test_runs (
             "run_id": "R-1",
             "summary": { "total": 1, "passed": 1, "failed": 0, "skipped": 0 },
             "results": {
-                ".gitoza/test/cases/p/a.yaml": {
+                ".gitoza/test/cases/p/a.md": {
                     "result": "passed",
                     "executed_at": "2026-01-01T00:00:00Z"
                 }

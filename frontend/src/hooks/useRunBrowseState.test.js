@@ -214,7 +214,7 @@ describe("useRunBrowseState", () => {
       h.rerender({
         tree: FOLDER_TREE,
         selectedRunId: "run-1",
-        selectedCaseFilePath: "__run__/run-1/.gitoza/test/cases/auth/login/case-1.yaml",
+        selectedCaseFilePath: "__run__/run-1/.gitoza/test/cases/auth/login/case-1.md",
         enabled: true,
         lastFolderStorageKey: "test.run.folder",
       });

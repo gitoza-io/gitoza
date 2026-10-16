@@ -1,11 +1,13 @@
 # Gitoza
 
-![GitHub stars](https://img.shields.io/github/stars/gitoza-io/gitoza?style=for-the-badge)
-![Latest release](https://img.shields.io/github/v/release/gitoza-io/gitoza?style=for-the-badge)
-![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=for-the-badge)
-![Download](https://img.shields.io/badge/download-gitoza.com-0A7C5A?style=for-the-badge)
+Local-first, Git-native test management — tickets, wiki, cases, and runs as **Markdown** in your repo (YAML frontmatter for structured fields). A practical alternative to TestRail for teams who want planning and verification in Git.
 
-**Gitoza** is a local-first desktop app for **test management** and **task tracking as files in Git** (Task-as-Code + Test-as-Code). Tickets, wiki pages, test cases, and test runs live as Markdown with YAML frontmatter in your repository; the app runs on your machine—there is no central cloud database for that data.
+[![GitHub stars](https://img.shields.io/github/stars/gitoza-io/gitoza?style=for-the-badge)](https://github.com/gitoza-io/gitoza)
+[![Latest release](https://img.shields.io/github/v/release/gitoza-io/gitoza?style=for-the-badge)](https://github.com/gitoza-io/gitoza/releases)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=for-the-badge)](LICENSE)
+[![Download](https://img.shields.io/badge/download-gitoza.com-0A7C5A?style=for-the-badge)](https://gitoza.com)
+
+**Gitoza** is a local-first desktop app for **test management** and **task tracking as files in Git** (Task-as-Code + Test-as-Code). Everything lives as Markdown in the repository—with YAML frontmatter for metadata—so the app runs on your machine with no central cloud database for that data.
 
 ![Gitoza — execute test cases in a suite with case preview](https://assets.gitoza.com/demos/readme-test-run-suite.gif)
 
@@ -41,7 +43,7 @@ Copy the workspace path from Gitoza, open the repo in an AI coding agent, and ge
 4. Hit **Sync**, review the changelist like an IDE diff, then confirm.
 5. If someone else changed the same items, choose **Keep mine** or **Keep shared version**, then continue.
 
-Everything you edit is stored as files in your repository. Sync publishes those changes for your teammates.
+Everything you edit is stored as Markdown files in your repository (YAML frontmatter for structured fields). Sync publishes those changes for your teammates.
 
 ## What you can do
 
@@ -86,15 +88,14 @@ flowchart LR
 - **In your Git repo** (branch `gitoza`): shared files under `.gitoza/`
 
 
-| In the repo                                     | What                        |
-| ----------------------------------------------- | --------------------------- |
-| `.gitoza/tasks/tickets/<project>/…`             | Tickets and releases        |
-| `.gitoza/wiki/…`                                | Wiki pages (nested folders) |
-| `.gitoza/test/cases/<project>/…/<case_id>.yaml` | Test cases                  |
-| `.gitoza/test/runs/<run_id>/`                   | Test runs                   |
-| `.gitoza/test/templates/*.md`                   | Case templates              |
-| `.gitoza/config.json`                           | Team project settings       |
-
+| In the repo                                     | What                                          |
+| ----------------------------------------------- | --------------------------------------------- |
+| `.gitoza/tasks/tickets/<project>/…`             | Tickets and releases (Markdown + frontmatter) |
+| `.gitoza/wiki/…`                                | Wiki pages (Markdown, nested folders)         |
+| `.gitoza/test/cases/<project>/…/<case_id>.md` | Test cases (Markdown body + YAML frontmatter) |
+| `.gitoza/test/runs/<run_id>/`                   | Test runs (`head.md` / `cases.md` / `results.md`) |
+| `.gitoza/test/templates/*.md`                   | Case templates (Markdown)                     |
+| `.gitoza/config.json`                           | Team project settings                         |
 
 Task and test data stay on the dedicated `gitoza` branch (or a dedicated repo that uses that branch). You do not merge them into your code mainline—so tickets, wiki, and tests never pollute application source.
 

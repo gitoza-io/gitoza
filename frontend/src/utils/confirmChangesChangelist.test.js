@@ -10,7 +10,7 @@ import {
 describe("breadcrumbLabelForCasePath", () => {
   it("formats project suite case breadcrumb", () => {
     expect(
-      breadcrumbLabelForCasePath(".gitoza/test/cases/auth/login/login.yaml"),
+      breadcrumbLabelForCasePath(".gitoza/test/cases/auth/login/login.md"),
     ).toBe("auth › login › login");
   });
 });
@@ -19,8 +19,8 @@ describe("buildConfirmChangelistEntries", () => {
   it("sorts case rows by path and adds section header", () => {
     const entries = buildConfirmChangelistEntries({
       caseChanges: [
-        { path: ".gitoza/test/cases/p/b.yaml", status: "M" },
-        { path: ".gitoza/test/cases/p/a.yaml", status: "A" },
+        { path: ".gitoza/test/cases/p/b.md", status: "M" },
+        { path: ".gitoza/test/cases/p/a.md", status: "A" },
       ],
     });
     expect(entries[0]).toMatchObject({
@@ -30,8 +30,8 @@ describe("buildConfirmChangelistEntries", () => {
       count: 2,
     });
     expect(entries[1].kind).toBe("case");
-    expect(entries[1].file_path).toBe(".gitoza/test/cases/p/a.yaml");
-    expect(entries[2].file_path).toBe(".gitoza/test/cases/p/b.yaml");
+    expect(entries[1].file_path).toBe(".gitoza/test/cases/p/a.md");
+    expect(entries[2].file_path).toBe(".gitoza/test/cases/p/b.md");
   });
 
   it("includes tickets runs templates and config sections when present", () => {
@@ -40,11 +40,11 @@ describe("buildConfirmChangelistEntries", () => {
         {
           runDir: ".gitoza/test/runs/sprint_1",
           runId: "sprint_1",
-          paths: [".gitoza/test/runs/sprint_1/head.yaml"],
+          paths: [".gitoza/test/runs/sprint_1/head.md"],
         },
       ],
-      ticketFiles: [".gitoza/tasks/tickets/auth/Auth-1.yaml"],
-      ticketChanges: [{ path: ".gitoza/tasks/tickets/auth/Auth-1.yaml", status: "A" }],
+      ticketFiles: [".gitoza/tasks/tickets/auth/Auth-1.md"],
+      ticketChanges: [{ path: ".gitoza/tasks/tickets/auth/Auth-1.md", status: "A" }],
       templateFiles: [".gitoza/test/templates/t.md"],
       configFiles: [".gitoza/config.json"],
     });
@@ -56,7 +56,7 @@ describe("buildConfirmChangelistEntries", () => {
     expect(kinds).toContain("config");
     const ticket = entries.find((e) => e.kind === "ticket");
     expect(ticket).toMatchObject({
-      path: ".gitoza/tasks/tickets/auth/Auth-1.yaml",
+      path: ".gitoza/tasks/tickets/auth/Auth-1.md",
       status: "A",
       title: "Auth-1",
       ticket_id: "Auth-1",
@@ -66,9 +66,9 @@ describe("buildConfirmChangelistEntries", () => {
   });
 
   it("includes wiki section after tickets with status metadata", () => {
-    const path = ".gitoza/wiki/architecture/data/model.yaml";
+    const path = ".gitoza/wiki/architecture/data/model.md";
     const entries = buildConfirmChangelistEntries({
-      ticketFiles: [".gitoza/tasks/tickets/auth/Auth-1.yaml"],
+      ticketFiles: [".gitoza/tasks/tickets/auth/Auth-1.md"],
       wikiFiles: [path],
       wikiChanges: [{ path, status: "M" }],
     });
@@ -91,7 +91,7 @@ describe("buildConfirmChangelistEntries", () => {
   });
 
   it("uses hydrated wiki title and page_id when meta is provided", () => {
-    const path = ".gitoza/wiki/architecture/data/model.yaml";
+    const path = ".gitoza/wiki/architecture/data/model.md";
     const entries = buildConfirmChangelistEntries({
       wikiFiles: [path],
       wikiChanges: [{ path, status: "A" }],
@@ -109,7 +109,7 @@ describe("buildConfirmChangelistEntries", () => {
   });
 
   it("uses hydrated ticket title and type when meta is provided", () => {
-    const path = ".gitoza/tasks/tickets/auth/Auth-1.yaml";
+    const path = ".gitoza/tasks/tickets/auth/Auth-1.md";
     const entries = buildConfirmChangelistEntries({
       ticketFiles: [path],
       ticketChanges: [{ path, status: "M" }],
@@ -133,7 +133,7 @@ describe("buildConfirmChangelistEntries", () => {
         {
           runDir: ".gitoza/test/runs/sprint_1",
           runId: "sprint_1",
-          paths: [".gitoza/test/runs/sprint_1/head.yaml"],
+          paths: [".gitoza/test/runs/sprint_1/head.md"],
         },
       ],
       templateFiles: [".gitoza/test/templates/t.md"],
@@ -153,22 +153,22 @@ describe("buildConfirmChangelistEntries", () => {
   it("does not treat nested substring paths as cases", () => {
     const entries = buildConfirmChangelistEntries({
       caseChanges: [
-        { path: "other-project/.gitoza/test/cases/a.yaml", status: "M" },
-        { path: ".gitoza/test/cases/p/a.yaml", status: "M" },
+        { path: "other-project/.gitoza/test/cases/a.md", status: "M" },
+        { path: ".gitoza/test/cases/p/a.md", status: "M" },
       ],
     });
     const cases = entries.filter((e) => e.kind === "case");
     expect(cases).toHaveLength(1);
-    expect(cases[0].file_path).toBe(".gitoza/test/cases/p/a.yaml");
+    expect(cases[0].file_path).toBe(".gitoza/test/cases/p/a.md");
   });
 
   it("puts outside yaml and nested false-positive paths in Other", () => {
     const entries = buildConfirmChangelistEntries({
-      caseChanges: [{ path: ".gitoza/test/cases/p/a.yaml", status: "M" }],
+      caseChanges: [{ path: ".gitoza/test/cases/p/a.md", status: "M" }],
       otherFiles: [
-        "specs/login.yaml",
-        "other-project/.gitoza/test/cases/nested.yaml",
-        "other-project/.gitoza/test/runs/r1/head.yaml",
+        "specs/login.md",
+        "other-project/.gitoza/test/cases/nested.md",
+        "other-project/.gitoza/test/runs/r1/head.md",
         "other-project/.gitoza/test/templates/t.md",
       ],
     });
@@ -178,10 +178,10 @@ describe("buildConfirmChangelistEntries", () => {
     expect(otherHeader).toMatchObject({ title: "Other", count: 4, canDiscard: false });
     const others = entries.filter((e) => e.kind === "other");
     expect(others.map((e) => e.path)).toEqual([
-      "other-project/.gitoza/test/cases/nested.yaml",
-      "other-project/.gitoza/test/runs/r1/head.yaml",
+      "other-project/.gitoza/test/cases/nested.md",
+      "other-project/.gitoza/test/runs/r1/head.md",
       "other-project/.gitoza/test/templates/t.md",
-      "specs/login.yaml",
+      "specs/login.md",
     ]);
     expect(others.every((e) => e.label === e.path)).toBe(true);
     expect(others.every((e) => e.discardable === false)).toBe(true);
@@ -202,18 +202,18 @@ describe("buildConfirmChangelistEntries", () => {
 describe("findFirstSelectableEntry", () => {
   it("prefers first case row", () => {
     const entries = buildConfirmChangelistEntries({
-      caseChanges: [{ path: ".gitoza/test/cases/p/a.yaml", status: "M" }],
+      caseChanges: [{ path: ".gitoza/test/cases/p/a.md", status: "M" }],
       runGroups: [
         {
           runDir: ".gitoza/test/runs/r1",
           runId: "r1",
-          paths: [".gitoza/test/runs/r1/head.yaml"],
+          paths: [".gitoza/test/runs/r1/head.md"],
         },
       ],
     });
     expect(findFirstSelectableEntry(entries)).toEqual({
       selectionKind: "caseFolder",
-      selectedFilePath: ".gitoza/test/cases/p/a.yaml",
+      selectedFilePath: ".gitoza/test/cases/p/a.md",
       selectedRunDir: null,
     });
   });
@@ -224,7 +224,7 @@ describe("findFirstSelectableEntry", () => {
         {
           runDir: ".gitoza/test/runs/r1",
           runId: "r1",
-          paths: [".gitoza/test/runs/r1/head.yaml"],
+          paths: [".gitoza/test/runs/r1/head.md"],
         },
       ],
     });
@@ -232,7 +232,7 @@ describe("findFirstSelectableEntry", () => {
   });
 
   it("selects wiki when it is the only change", () => {
-    const path = ".gitoza/wiki/intro.yaml";
+    const path = ".gitoza/wiki/intro.md";
     const entries = buildConfirmChangelistEntries({
       wikiFiles: [path],
       wikiChanges: [{ path, status: "A" }],
@@ -245,7 +245,7 @@ describe("findFirstSelectableEntry", () => {
   });
 
   it("selects Other when it is the only change", () => {
-    const path = "specs/login.yaml";
+    const path = "specs/login.md";
     const entries = buildConfirmChangelistEntries({
       otherFiles: [path],
     });
@@ -262,20 +262,20 @@ describe("discardTargetFromChangelistEntry", () => {
     const entries = buildConfirmChangelistEntries({
       caseChanges: [
         {
-          path: ".gitoza/test/cases/p/a.yaml",
+          path: ".gitoza/test/cases/p/a.md",
           status: "R",
-          old_path: ".gitoza/test/cases/p/old.yaml",
+          old_path: ".gitoza/test/cases/p/old.md",
         },
       ],
     });
     const caseEntry = entries.find((e) => e.kind === "case");
     expect(discardTargetFromChangelistEntry(caseEntry)).toEqual({
-      paths: [".gitoza/test/cases/p/a.yaml"],
+      paths: [".gitoza/test/cases/p/a.md"],
       changes: [
         {
-          path: ".gitoza/test/cases/p/a.yaml",
+          path: ".gitoza/test/cases/p/a.md",
           status: "R",
-          old_path: ".gitoza/test/cases/p/old.yaml",
+          old_path: ".gitoza/test/cases/p/old.md",
         },
       ],
       label: expect.any(String),
@@ -289,9 +289,9 @@ describe("discardTargetFromChangelistEntry", () => {
           runDir: ".gitoza/test/runs/r1",
           runId: "r1",
           paths: [
-            ".gitoza/test/runs/r1/head.yaml",
-            ".gitoza/test/runs/r1/cases.yaml",
-            ".gitoza/test/runs/r1/results.yaml",
+            ".gitoza/test/runs/r1/head.md",
+            ".gitoza/test/runs/r1/cases.md",
+            ".gitoza/test/runs/r1/results.md",
           ],
         },
       ],
@@ -299,15 +299,15 @@ describe("discardTargetFromChangelistEntry", () => {
     const runEntry = entries.find((e) => e.kind === "runGroup");
     const target = discardTargetFromChangelistEntry(runEntry);
     expect(target?.paths).toEqual([
-      ".gitoza/test/runs/r1/head.yaml",
-      ".gitoza/test/runs/r1/cases.yaml",
-      ".gitoza/test/runs/r1/results.yaml",
+      ".gitoza/test/runs/r1/head.md",
+      ".gitoza/test/runs/r1/cases.md",
+      ".gitoza/test/runs/r1/results.md",
     ]);
   });
 
   it("returns null discard target for Other outside .gitoza", () => {
     const entries = buildConfirmChangelistEntries({
-      otherFiles: ["specs/login.yaml"],
+      otherFiles: ["specs/login.md"],
     });
     const otherEntry = entries.find((e) => e.kind === "other");
     expect(discardTargetFromChangelistEntry(otherEntry)).toBeNull();
@@ -331,21 +331,21 @@ describe("discardTargetFromSection", () => {
   it("collects all case paths in the cases section", () => {
     const entries = buildConfirmChangelistEntries({
       caseChanges: [
-        { path: ".gitoza/test/cases/p/a.yaml", status: "M" },
-        { path: ".gitoza/test/cases/p/b.yaml", status: "A" },
+        { path: ".gitoza/test/cases/p/a.md", status: "M" },
+        { path: ".gitoza/test/cases/p/b.md", status: "A" },
       ],
       runGroups: [
         {
           runDir: ".gitoza/test/runs/r1",
           runId: "r1",
-          paths: [".gitoza/test/runs/r1/head.yaml"],
+          paths: [".gitoza/test/runs/r1/head.md"],
         },
       ],
     });
     const target = discardTargetFromSection(entries, "cases");
     expect(target?.paths).toEqual([
-      ".gitoza/test/cases/p/a.yaml",
-      ".gitoza/test/cases/p/b.yaml",
+      ".gitoza/test/cases/p/a.md",
+      ".gitoza/test/cases/p/b.md",
     ]);
     expect(target?.itemCount).toBe(2);
     expect(target?.label).toBe("Cases");
@@ -358,16 +358,16 @@ describe("discardTargetFromSection", () => {
           runDir: ".gitoza/test/runs/r1",
           runId: "r1",
           paths: [
-            ".gitoza/test/runs/r1/head.yaml",
-            ".gitoza/test/runs/r1/results.yaml",
+            ".gitoza/test/runs/r1/head.md",
+            ".gitoza/test/runs/r1/results.md",
           ],
         },
       ],
     });
     const target = discardTargetFromSection(entries, "runs");
     expect(target?.paths).toEqual([
-      ".gitoza/test/runs/r1/head.yaml",
-      ".gitoza/test/runs/r1/results.yaml",
+      ".gitoza/test/runs/r1/head.md",
+      ".gitoza/test/runs/r1/results.md",
     ]);
     expect(target?.itemCount).toBe(1);
   });
@@ -375,18 +375,18 @@ describe("discardTargetFromSection", () => {
   it("collects all wiki paths in the wiki section", () => {
     const entries = buildConfirmChangelistEntries({
       wikiFiles: [
-        ".gitoza/wiki/intro.yaml",
-        ".gitoza/wiki/architecture/overview.yaml",
+        ".gitoza/wiki/intro.md",
+        ".gitoza/wiki/architecture/overview.md",
       ],
       wikiChanges: [
-        { path: ".gitoza/wiki/intro.yaml", status: "A" },
-        { path: ".gitoza/wiki/architecture/overview.yaml", status: "M" },
+        { path: ".gitoza/wiki/intro.md", status: "A" },
+        { path: ".gitoza/wiki/architecture/overview.md", status: "M" },
       ],
     });
     const target = discardTargetFromSection(entries, "wiki");
     expect(target?.paths).toEqual([
-      ".gitoza/wiki/architecture/overview.yaml",
-      ".gitoza/wiki/intro.yaml",
+      ".gitoza/wiki/architecture/overview.md",
+      ".gitoza/wiki/intro.md",
     ]);
     expect(target?.itemCount).toBe(2);
     expect(target?.label).toBe("Wiki");

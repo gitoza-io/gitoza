@@ -15,9 +15,9 @@ const SUITE = `${PROJECT}/login`;
 describe("countSelectedUnderDirectory", () => {
   it("counts paths under the directory prefix", () => {
     const selected = new Set([
-      `${SUITE}/a.yaml`,
-      `${SUITE}/b.yaml`,
-      `${PROJECT}/other/x.yaml`,
+      `${SUITE}/a.md`,
+      `${SUITE}/b.md`,
+      `${PROJECT}/other/x.md`,
     ]);
     expect(countSelectedUnderDirectory(selected, SUITE)).toBe(2);
   });
@@ -26,21 +26,21 @@ describe("countSelectedUnderDirectory", () => {
 describe("countSelectableUnderDirectory", () => {
   it("counts rows under prefix with optional filter", () => {
     const rows = [
-      { file_path: `${SUITE}/a.yaml` },
-      { file_path: `${SUITE}/b.yaml` },
-      { file_path: `${PROJECT}/other/x.yaml` },
+      { file_path: `${SUITE}/a.md` },
+      { file_path: `${SUITE}/b.md` },
+      { file_path: `${PROJECT}/other/x.md` },
     ];
     expect(countSelectableUnderDirectory(rows, SUITE)).toBe(2);
     expect(
-      countSelectableUnderDirectory(rows, SUITE, (p) => p.endsWith("a.yaml")),
+      countSelectableUnderDirectory(rows, SUITE, (p) => p.endsWith("a.md")),
     ).toBe(1);
   });
 });
 
 describe("getFolderPickerCheckboxState", () => {
   const rows = [
-    { file_path: `${SUITE}/a.yaml` },
-    { file_path: `${SUITE}/b.yaml` },
+    { file_path: `${SUITE}/a.md` },
+    { file_path: `${SUITE}/b.md` },
   ];
 
   it("returns unchecked when nothing selected", () => {
@@ -54,7 +54,7 @@ describe("getFolderPickerCheckboxState", () => {
       checked: false,
       indeterminate: false,
       selectableCount: 2,
-      pathsForState: [`${SUITE}/a.yaml`, `${SUITE}/b.yaml`],
+      pathsForState: [`${SUITE}/a.md`, `${SUITE}/b.md`],
     });
   });
 
@@ -62,7 +62,7 @@ describe("getFolderPickerCheckboxState", () => {
     const state = getFolderPickerCheckboxState({
       directoryPath: SUITE,
       rows,
-      selectedFilePaths: new Set([`${SUITE}/a.yaml`]),
+      selectedFilePaths: new Set([`${SUITE}/a.md`]),
     });
     expect(state.checked).toBe(false);
     expect(state.indeterminate).toBe(true);
@@ -72,7 +72,7 @@ describe("getFolderPickerCheckboxState", () => {
     const state = getFolderPickerCheckboxState({
       directoryPath: SUITE,
       rows,
-      selectedFilePaths: new Set([`${SUITE}/a.yaml`, `${SUITE}/b.yaml`]),
+      selectedFilePaths: new Set([`${SUITE}/a.md`, `${SUITE}/b.md`]),
     });
     expect(state.checked).toBe(true);
     expect(state.indeterminate).toBe(false);
@@ -81,20 +81,20 @@ describe("getFolderPickerCheckboxState", () => {
   it("includes selected paths not yet in loaded rows for tri-state", () => {
     const state = getFolderPickerCheckboxState({
       directoryPath: SUITE,
-      rows: [{ file_path: `${SUITE}/a.yaml` }],
-      selectedFilePaths: new Set([`${SUITE}/a.yaml`, `${SUITE}/b.yaml`]),
+      rows: [{ file_path: `${SUITE}/a.md` }],
+      selectedFilePaths: new Set([`${SUITE}/a.md`, `${SUITE}/b.md`]),
     });
     expect(state.indeterminate).toBe(false);
     expect(state.checked).toBe(true);
-    expect(state.pathsForState).toContain(`${SUITE}/b.yaml`);
+    expect(state.pathsForState).toContain(`${SUITE}/b.md`);
   });
 
   it("respects filterPath", () => {
     const state = getFolderPickerCheckboxState({
       directoryPath: SUITE,
       rows,
-      selectedFilePaths: new Set([`${SUITE}/a.yaml`]),
-      filterPath: (p) => p.endsWith("a.yaml"),
+      selectedFilePaths: new Set([`${SUITE}/a.md`]),
+      filterPath: (p) => p.endsWith("a.md"),
     });
     expect(state.selectableCount).toBe(1);
     expect(state.checked).toBe(true);
@@ -118,8 +118,8 @@ describe("isPrefixCoveredByLoadedPrefixes", () => {
 
 describe("getPickerFolderBadgeCount", () => {
   const rows = [
-    { file_path: `${SUITE}/a.yaml` },
-    { file_path: `${SUITE}/b.yaml` },
+    { file_path: `${SUITE}/a.md` },
+    { file_path: `${SUITE}/b.md` },
   ];
 
   it("falls back to server count before lazy data is available", () => {

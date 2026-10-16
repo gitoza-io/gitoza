@@ -61,13 +61,13 @@ describe("mergeRunCoversFromCases", () => {
 describe("enrichCasesRequirementIdsFromLive", () => {
   it("fills empty run-case snapshots from live case detail", async () => {
     const getDetail = async (fp) => {
-      if (fp === "a.yaml") return { requirement_ids: ["TICK-1"] };
+      if (fp === "a.md") return { requirement_ids: ["TICK-1"] };
       return { requirement_ids: [] };
     };
     const out = await enrichCasesRequirementIdsFromLive(
       [
-        { file_path: "a.yaml", requirement_ids: [] },
-        { file_path: "b.yaml", requirement_ids: ["KEEP"] },
+        { file_path: "a.md", requirement_ids: [] },
+        { file_path: "b.md", requirement_ids: ["KEEP"] },
       ],
       getDetail,
     );

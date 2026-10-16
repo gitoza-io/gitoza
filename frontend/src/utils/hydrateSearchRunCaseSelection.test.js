@@ -9,7 +9,7 @@ describe("resolveRunIdForCaseSelection", () => {
     expect(
       resolveRunIdForCaseSelection({
         searchActive: false,
-        caseRow: { run_id: "run-b", file_path: "a.yaml" },
+        caseRow: { run_id: "run-b", file_path: "a.md" },
         searchSelectedRunId: "run-search",
         browseSelectedRunId: "run-a",
       }),
@@ -20,7 +20,7 @@ describe("resolveRunIdForCaseSelection", () => {
     expect(
       resolveRunIdForCaseSelection({
         searchActive: true,
-        caseRow: { run_id: "run-b", file_path: "a.yaml" },
+        caseRow: { run_id: "run-b", file_path: "a.md" },
         searchSelectedRunId: "run-search",
         browseSelectedRunId: "run-a",
       }),
@@ -31,7 +31,7 @@ describe("resolveRunIdForCaseSelection", () => {
     expect(
       resolveRunIdForCaseSelection({
         searchActive: true,
-        caseRow: { file_path: "a.yaml" },
+        caseRow: { file_path: "a.md" },
         searchSelectedRunId: "run-search",
         browseSelectedRunId: "run-a",
       }),
@@ -43,7 +43,7 @@ describe("hydrateSearchRunCaseSelection", () => {
   const searchCases = [
     {
       run_id: "run-a",
-      file_path: ".gitoza/test/cases/auth/login/a.yaml",
+      file_path: ".gitoza/test/cases/auth/login/a.md",
       case_id: "TC-1",
       title: "Login",
       result: "failed",
@@ -61,7 +61,7 @@ describe("hydrateSearchRunCaseSelection", () => {
 
     await hydrateSearchRunCaseSelection({
       runId: "run-a",
-      filePath: ".gitoza/test/cases/auth/login/a.yaml",
+      filePath: ".gitoza/test/cases/auth/login/a.md",
       searchCases,
       ensureRunHeaderLoaded,
       setRunDetailsByRunId,
@@ -75,7 +75,7 @@ describe("hydrateSearchRunCaseSelection", () => {
     });
     expect(next["run-a"].cases).toHaveLength(1);
     expect(next["run-a"].cases[0]).toMatchObject({
-      file_path: ".gitoza/test/cases/auth/login/a.yaml",
+      file_path: ".gitoza/test/cases/auth/login/a.md",
       case_id: "TC-1",
       title: "Login",
       result: "failed",
@@ -88,7 +88,7 @@ describe("hydrateSearchRunCaseSelection", () => {
 
     await hydrateSearchRunCaseSelection({
       runId: "run-a",
-      filePath: "missing.yaml",
+      filePath: "missing.md",
       searchCases,
       ensureRunHeaderLoaded,
       setRunDetailsByRunId,

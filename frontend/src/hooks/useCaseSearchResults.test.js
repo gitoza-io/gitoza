@@ -71,7 +71,7 @@ describe("useCaseSearchResults", () => {
   });
 
   it("fetches cases with mapped params when chips are set", async () => {
-    const rows = [{ file_path: "proj/case.yaml", title: "Case" }];
+    const rows = [{ file_path: "proj/case.md", title: "Case" }];
     fetchAllCases.mockResolvedValueOnce(rows);
 
     const chips = [{ key: "tag", value: "smoke" }];
@@ -88,7 +88,7 @@ describe("useCaseSearchResults", () => {
   });
 
   it("clears results when chips become empty", async () => {
-    fetchAllCases.mockResolvedValueOnce([{ file_path: "a.yaml" }]);
+    fetchAllCases.mockResolvedValueOnce([{ file_path: "a.md" }]);
 
     const hook = renderUseCaseSearchResults("my-repo", [{ key: "tag", value: "smoke" }]);
     await act(async () => {
@@ -116,7 +116,7 @@ describe("useCaseSearchResults", () => {
       resolveFirst = resolve;
     });
     fetchAllCases.mockReturnValueOnce(firstPromise);
-    fetchAllCases.mockResolvedValueOnce([{ file_path: "fresh.yaml" }]);
+    fetchAllCases.mockResolvedValueOnce([{ file_path: "fresh.md" }]);
 
     const hook = renderUseCaseSearchResults("my-repo", [{ key: "tag", value: "old" }]);
     hook.rerender("my-repo", [{ key: "tag", value: "new" }]);
@@ -124,12 +124,12 @@ describe("useCaseSearchResults", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(hook.current.results).toEqual([{ file_path: "fresh.yaml" }]);
+    expect(hook.current.results).toEqual([{ file_path: "fresh.md" }]);
 
     await act(async () => {
-      resolveFirst([{ file_path: "stale.yaml" }]);
+      resolveFirst([{ file_path: "stale.md" }]);
       await Promise.resolve();
     });
-    expect(hook.current.results).toEqual([{ file_path: "fresh.yaml" }]);
+    expect(hook.current.results).toEqual([{ file_path: "fresh.md" }]);
   });
 });

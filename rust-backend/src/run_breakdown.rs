@@ -453,7 +453,7 @@ CREATE TABLE test_run_results (
             &conn,
             "run-1",
             "repo",
-            &format!("{}/root.yaml", project),
+            &format!("{}/root.md", project),
             Some("high"),
             None,
             Some("passed"),
@@ -462,7 +462,7 @@ CREATE TABLE test_run_results (
             &conn,
             "run-1",
             "repo",
-            &format!("{}/a.yaml", suite),
+            &format!("{}/a.md", suite),
             Some("medium"),
             None,
             Some("failed"),
@@ -488,7 +488,7 @@ CREATE TABLE test_run_results (
             &conn,
             "run-1",
             "repo",
-            "custom/path/case.yaml",
+            "custom/path/case.md",
             None,
             None,
             Some("passed"),
@@ -511,7 +511,7 @@ CREATE TABLE test_run_results (
         let conn = mem_conn();
         setup_schema(&conn);
         insert_run(&conn, "run-1", "repo");
-        let fp = ".gitoza/test/cases/proj/a.yaml";
+        let fp = ".gitoza/test/cases/proj/a.md";
         insert_case(
             &conn,
             "run-1",
@@ -539,7 +539,7 @@ CREATE TABLE test_run_results (
             &conn,
             "run-1",
             "repo",
-            ".gitoza/test/cases/proj/x.yaml",
+            ".gitoza/test/cases/proj/x.md",
             Some(""),
             None,
             None,
