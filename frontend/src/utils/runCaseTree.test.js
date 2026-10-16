@@ -22,12 +22,12 @@ describe("buildRunCaseTree", () => {
   it("sorts cases within a suite by case_id, not title", () => {
     const runCases = [
       {
-        file_path: `${SUITE}/beta.yaml`,
+        file_path: `${SUITE}/beta.md`,
         case_id: "TC-002",
         title: "Alpha",
       },
       {
-        file_path: `${SUITE}/alpha.yaml`,
+        file_path: `${SUITE}/alpha.md`,
         case_id: "TC-001",
         title: "Zeta",
       },
@@ -41,12 +41,12 @@ describe("buildRunCaseTree", () => {
   it("sorts direct project cases by case_id, not title", () => {
     const runCases = [
       {
-        file_path: `${PROJECT}/beta.yaml`,
+        file_path: `${PROJECT}/beta.md`,
         case_id: "TC-002",
         title: "Alpha",
       },
       {
-        file_path: `${PROJECT}/alpha.yaml`,
+        file_path: `${PROJECT}/alpha.md`,
         case_id: "TC-001",
         title: "Zeta",
       },
@@ -61,20 +61,20 @@ describe("flattenRunCasePathsInDisplayOrder", () => {
   it("follows case_id order from buildRunCaseTree", () => {
     const runCases = [
       {
-        file_path: `${SUITE}/beta.yaml`,
+        file_path: `${SUITE}/beta.md`,
         case_id: "TC-002",
         title: "Alpha",
       },
       {
-        file_path: `${SUITE}/alpha.yaml`,
+        file_path: `${SUITE}/alpha.md`,
         case_id: "TC-001",
         title: "Zeta",
       },
     ];
 
     expect(flattenRunCasePathsInDisplayOrder(runCases)).toEqual([
-      `${SUITE}/alpha.yaml`,
-      `${SUITE}/beta.yaml`,
+      `${SUITE}/alpha.md`,
+      `${SUITE}/beta.md`,
     ]);
   });
 });
@@ -82,18 +82,18 @@ describe("flattenRunCasePathsInDisplayOrder", () => {
 describe("buildRunCaseLocationMap", () => {
   it("maps file_path to listId, index, and listCaseCount", () => {
     const runCases = [
-      { file_path: `${SUITE}/b.yaml`, case_id: "TC-002", title: "B" },
-      { file_path: `${SUITE}/a.yaml`, case_id: "TC-001", title: "A" },
+      { file_path: `${SUITE}/b.md`, case_id: "TC-002", title: "B" },
+      { file_path: `${SUITE}/a.md`, case_id: "TC-001", title: "A" },
     ];
     const tree = buildRunCaseTree(runCases);
     const map = buildRunCaseLocationMap(tree);
 
-    expect(map.get(`${SUITE}/a.yaml`)).toEqual({
+    expect(map.get(`${SUITE}/a.md`)).toEqual({
       listId: SUITE,
       index: 0,
       listCaseCount: 2,
     });
-    expect(map.get(`${SUITE}/b.yaml`)).toEqual({
+    expect(map.get(`${SUITE}/b.md`)).toEqual({
       listId: SUITE,
       index: 1,
       listCaseCount: 2,
@@ -104,8 +104,8 @@ describe("buildRunCaseLocationMap", () => {
 describe("buildRunFolderTree", () => {
   it("produces RepositoryFolderTree-compatible nodes with case_count", () => {
     const runCases = [
-      { file_path: `${PROJECT}/root.yaml`, case_id: "TC-1", title: "Root", result: "passed" },
-      { file_path: `${SUITE}/a.yaml`, case_id: "TC-2", title: "A", result: "failed" },
+      { file_path: `${PROJECT}/root.md`, case_id: "TC-1", title: "Root", result: "passed" },
+      { file_path: `${SUITE}/a.md`, case_id: "TC-2", title: "A", result: "failed" },
     ];
     const folderTree = buildRunFolderTree(runCases);
     expect(folderTree).toHaveLength(1);
@@ -118,9 +118,9 @@ describe("buildRunFolderTree", () => {
 
   it("includes result_stats with failed and pending counts", () => {
     const runCases = [
-      { file_path: `${PROJECT}/root.yaml`, case_id: "TC-1", title: "Root", result: "passed" },
-      { file_path: `${PROJECT}/pending.yaml`, case_id: "TC-2", title: "Pending", result: "pending" },
-      { file_path: `${SUITE}/a.yaml`, case_id: "TC-3", title: "A", result: "failed" },
+      { file_path: `${PROJECT}/root.md`, case_id: "TC-1", title: "Root", result: "passed" },
+      { file_path: `${PROJECT}/pending.md`, case_id: "TC-2", title: "Pending", result: "pending" },
+      { file_path: `${SUITE}/a.md`, case_id: "TC-3", title: "A", result: "failed" },
     ];
     const folderTree = buildRunFolderTree(runCases);
     expect(folderTree[0].result_stats).toEqual({
@@ -143,8 +143,8 @@ describe("buildRunFolderTree", () => {
     const PARENT = `${PROJECT}/02_user_registration`;
     const CHILD = `${PARENT}/01 test`;
     const runCases = [
-      { file_path: `${PARENT}/direct.yaml`, case_id: "TC-1", title: "Direct", result: "passed" },
-      { file_path: `${CHILD}/nested.yaml`, case_id: "TC-2", title: "Nested", result: "failed" },
+      { file_path: `${PARENT}/direct.md`, case_id: "TC-1", title: "Direct", result: "passed" },
+      { file_path: `${CHILD}/nested.md`, case_id: "TC-2", title: "Nested", result: "failed" },
     ];
     const folderTree = buildRunFolderTree(runCases);
     expect(folderTree[0].children).toHaveLength(1);
@@ -160,8 +160,8 @@ describe("buildRunFolderTree", () => {
     const PARENT = `${PROJECT}/02_user_registration`;
     const CHILD = `${PARENT}/01 test`;
     const runCases = [
-      { file_path: `${PARENT}/direct.yaml`, case_id: "TC-1", title: "Direct", result: "passed" },
-      { file_path: `${CHILD}/nested.yaml`, case_id: "TC-2", title: "Nested", result: "failed" },
+      { file_path: `${PARENT}/direct.md`, case_id: "TC-1", title: "Direct", result: "passed" },
+      { file_path: `${CHILD}/nested.md`, case_id: "TC-2", title: "Nested", result: "failed" },
     ];
     const folderTree = buildRunFolderTree(runCases);
     const parentNode = folderTree[0].children[0];
@@ -177,8 +177,8 @@ describe("buildRunFolderTree", () => {
 
 describe("getRunCasesForFolderSelection", () => {
   const runCases = [
-    { file_path: `${PROJECT}/root.yaml`, case_id: "TC-1", title: "Root", result: "passed" },
-    { file_path: `${SUITE}/a.yaml`, case_id: "TC-2", title: "A", result: "failed" },
+    { file_path: `${PROJECT}/root.md`, case_id: "TC-1", title: "Root", result: "passed" },
+    { file_path: `${SUITE}/a.md`, case_id: "TC-2", title: "A", result: "failed" },
   ];
   const folderTree = buildRunFolderTree(runCases);
 
@@ -197,8 +197,8 @@ describe("getRunCasesForFolderSelection", () => {
     const PARENT = `${PROJECT}/registration`;
     const CHILD = `${PARENT}/01 test`;
     const nestedRunCases = [
-      { file_path: `${PARENT}/direct.yaml`, case_id: "TC-1", title: "Direct", result: "passed" },
-      { file_path: `${CHILD}/nested.yaml`, case_id: "TC-2", title: "Nested", result: "failed" },
+      { file_path: `${PARENT}/direct.md`, case_id: "TC-1", title: "Direct", result: "passed" },
+      { file_path: `${CHILD}/nested.md`, case_id: "TC-2", title: "Nested", result: "failed" },
     ];
     const nestedTree = buildRunFolderTree(nestedRunCases);
     const cases = getRunCasesForFolderSelection(nestedRunCases, nestedTree, PARENT);
@@ -209,7 +209,7 @@ describe("getRunCasesForFolderSelection", () => {
   it("scopes folder selection to the selected run when the same file_path exists in multiple runs", () => {
     const runA = "run-a";
     const runB = "run-b";
-    const sharedPath = `${SUITE}/a.yaml`;
+    const sharedPath = `${SUITE}/a.md`;
     const allCases = [
       { run_id: runA, file_path: sharedPath, case_id: "TC-1", title: "A failed", result: "failed" },
       { run_id: runB, file_path: sharedPath, case_id: "TC-1", title: "B passed", result: "passed" },
@@ -231,8 +231,8 @@ describe("getRunCasesForFolderSelection", () => {
 describe("buildGroupedRunCaseListEntries", () => {
   const runId = "run-a";
   const runCases = [
-    { file_path: `${PROJECT}/direct.yaml`, case_id: "TC-1", title: "Direct", result: "passed" },
-    { file_path: `${SUITE}/a.yaml`, case_id: "TC-2", title: "A", result: "failed" },
+    { file_path: `${PROJECT}/direct.md`, case_id: "TC-1", title: "Direct", result: "passed" },
+    { file_path: `${SUITE}/a.md`, case_id: "TC-2", title: "A", result: "failed" },
   ];
   const unified = buildUnifiedRunTree(
     [{ run_id: runId, name: "Smoke", total_cases: 2 }],
@@ -261,9 +261,9 @@ describe("buildGroupedRunCaseListEntries", () => {
     const PARENT = `${PROJECT}/02_user_registration`;
     const CHILD = `${PARENT}/01 test`;
     const nestedRunCases = [
-      { file_path: `${PROJECT}/direct.yaml`, case_id: "TC-1", title: "Direct", result: "passed" },
-      { file_path: `${PARENT}/suite-direct.yaml`, case_id: "TC-2", title: "Suite direct", result: "pending" },
-      { file_path: `${CHILD}/nested.yaml`, case_id: "TC-3", title: "Nested", result: "failed" },
+      { file_path: `${PROJECT}/direct.md`, case_id: "TC-1", title: "Direct", result: "passed" },
+      { file_path: `${PARENT}/suite-direct.md`, case_id: "TC-2", title: "Suite direct", result: "pending" },
+      { file_path: `${CHILD}/nested.md`, case_id: "TC-3", title: "Nested", result: "failed" },
     ];
     const nestedUnified = buildUnifiedRunTree(
       [{ run_id: runId, name: "Smoke", total_cases: 3 }],
@@ -287,7 +287,7 @@ describe("buildGroupedRunCaseListEntries", () => {
 describe("findRunFolderDisplayName", () => {
   it("returns display name for suite folder", () => {
     const folderTree = buildRunFolderTree([
-      { file_path: `${SUITE}/a.yaml`, case_id: "TC-1", title: "A" },
+      { file_path: `${SUITE}/a.md`, case_id: "TC-1", title: "A" },
     ]);
     expect(findRunFolderDisplayName(folderTree, SUITE)).toBe("login");
   });
@@ -302,14 +302,14 @@ describe("buildUnifiedRunTreeFromSearchResults", () => {
     const matchingCases = [
       {
         run_id: "run-a",
-        file_path: `${PROJECT}/root.yaml`,
+        file_path: `${PROJECT}/root.md`,
         case_id: "TC-1",
         title: "Root",
         result: "failed",
       },
       {
         run_id: "run-a",
-        file_path: `${SUITE}/a.yaml`,
+        file_path: `${SUITE}/a.md`,
         case_id: "TC-2",
         title: "A",
         result: "pending",
@@ -359,8 +359,8 @@ describe("buildUnifiedRunTree", () => {
       "run-a": {
         run: { run_id: "run-a", name: "Smoke", total_cases: 2 },
         cases: [
-          { file_path: `${PROJECT}/root.yaml`, case_id: "TC-1", title: "Root" },
-          { file_path: `${SUITE}/a.yaml`, case_id: "TC-2", title: "A" },
+          { file_path: `${PROJECT}/root.md`, case_id: "TC-1", title: "Root" },
+          { file_path: `${SUITE}/a.md`, case_id: "TC-2", title: "A" },
         ],
       },
     };
@@ -406,8 +406,8 @@ describe("folderPrefixFromTreePath", () => {
 
 describe("getRunCasesForFolderSelection unified paths", () => {
   const runCases = [
-    { file_path: `${PROJECT}/root.yaml`, case_id: "TC-1", title: "Root", result: "passed" },
-    { file_path: `${SUITE}/a.yaml`, case_id: "TC-2", title: "A", result: "failed" },
+    { file_path: `${PROJECT}/root.md`, case_id: "TC-1", title: "Root", result: "passed" },
+    { file_path: `${SUITE}/a.md`, case_id: "TC-2", title: "A", result: "failed" },
   ];
 
   it("returns all cases when run root is selected", () => {

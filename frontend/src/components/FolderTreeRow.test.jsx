@@ -128,7 +128,7 @@ describe("FolderTreeRow select vs expand", () => {
 describe("FolderTreeRow browse badge count", () => {
   it("falls back to node.case_count when lazy catalog has not loaded the project", () => {
     const otherProjectCases = [
-      { file_path: ".gitoza/test/cases/other/suite/a.yaml" },
+      { file_path: ".gitoza/test/cases/other/suite/a.md" },
     ];
     const directoryIndex = buildDirectoryRowIndex(otherProjectCases);
 

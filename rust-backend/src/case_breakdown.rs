@@ -240,7 +240,7 @@ VALUES (?1, ?2, 'repo1', ?3, '2024-01-01', ?4, ?5, ?6, ?7)
         let dir = ".gitoza/test/cases/proj";
         insert_case(
             &conn,
-            ".gitoza/test/cases/proj/a.yaml",
+            ".gitoza/test/cases/proj/a.md",
             dir,
             Some("high"),
             Some(r#"["smoke","regression"]"#),
@@ -249,7 +249,7 @@ VALUES (?1, ?2, 'repo1', ?3, '2024-01-01', ?4, ?5, ?6, ?7)
         );
         insert_case(
             &conn,
-            ".gitoza/test/cases/proj/b.yaml",
+            ".gitoza/test/cases/proj/b.md",
             dir,
             Some("low"),
             Some("[]"),
@@ -258,7 +258,7 @@ VALUES (?1, ?2, 'repo1', ?3, '2024-01-01', ?4, ?5, ?6, ?7)
         );
         insert_case(
             &conn,
-            ".gitoza/test/cases/proj/c.yaml",
+            ".gitoza/test/cases/proj/c.md",
             dir,
             None,
             None,
@@ -288,7 +288,7 @@ VALUES (?1, ?2, 'repo1', ?3, '2024-01-01', ?4, ?5, ?6, ?7)
         let dir = ".gitoza/test/cases/.archive/old";
         insert_case(
             &conn,
-            ".gitoza/test/cases/.archive/old/x.yaml",
+            ".gitoza/test/cases/.archive/old/x.md",
             dir,
             Some("high"),
             Some(r#"["x"]"#),

@@ -18,9 +18,9 @@ import {
 
 describe("getDirectCasesInFolder", () => {
   const rows = [
-    { file_path: ".gitoza/test/cases/auth/login.yaml", case_id: "TC-1", title: "Login" },
-    { file_path: ".gitoza/test/cases/auth/debug/smoke.yaml", case_id: "TC-2", title: "Smoke" },
-    { file_path: ".gitoza/test/cases/auth/debug/edge.yaml", case_id: "TC-3", title: "Edge" },
+    { file_path: ".gitoza/test/cases/auth/login.md", case_id: "TC-1", title: "Login" },
+    { file_path: ".gitoza/test/cases/auth/debug/smoke.md", case_id: "TC-2", title: "Smoke" },
+    { file_path: ".gitoza/test/cases/auth/debug/edge.md", case_id: "TC-3", title: "Edge" },
   ];
 
   it("returns only direct cases in the folder", () => {
@@ -39,13 +39,13 @@ describe("getDirectCasesInFolder", () => {
 
 describe("getParentDirectoryPath", () => {
   it("returns parent directory of a case file", () => {
-    expect(getParentDirectoryPath(".gitoza/test/cases/auth/login.yaml")).toBe(
+    expect(getParentDirectoryPath(".gitoza/test/cases/auth/login.md")).toBe(
       ".gitoza/test/cases/auth",
     );
   });
 
   it("returns null when no slash", () => {
-    expect(getParentDirectoryPath("login.yaml")).toBeNull();
+    expect(getParentDirectoryPath("login.md")).toBeNull();
   });
 });
 
@@ -66,9 +66,9 @@ describe("collectFolderExpandKeys", () => {
 
 describe("getRecursiveCasesInFolder", () => {
   const rows = [
-    { file_path: ".gitoza/test/cases/auth/login.yaml", case_id: "TC-1", title: "Login" },
-    { file_path: ".gitoza/test/cases/auth/debug/smoke.yaml", case_id: "TC-2", title: "Smoke" },
-    { file_path: ".gitoza/test/cases/auth/debug/edge.yaml", case_id: "TC-3", title: "Edge" },
+    { file_path: ".gitoza/test/cases/auth/login.md", case_id: "TC-1", title: "Login" },
+    { file_path: ".gitoza/test/cases/auth/debug/smoke.md", case_id: "TC-2", title: "Smoke" },
+    { file_path: ".gitoza/test/cases/auth/debug/edge.md", case_id: "TC-3", title: "Edge" },
   ];
 
   it("returns all cases under project prefix", () => {
@@ -79,8 +79,8 @@ describe("getRecursiveCasesInFolder", () => {
 
 describe("getCasesForFolderSelection", () => {
   const rows = [
-    { file_path: ".gitoza/test/cases/auth/login.yaml", case_id: "TC-1", title: "Login" },
-    { file_path: ".gitoza/test/cases/auth/debug/smoke.yaml", case_id: "TC-2", title: "Smoke" },
+    { file_path: ".gitoza/test/cases/auth/login.md", case_id: "TC-1", title: "Login" },
+    { file_path: ".gitoza/test/cases/auth/debug/smoke.md", case_id: "TC-2", title: "Smoke" },
   ];
   const tree = [
     {
@@ -105,8 +105,8 @@ describe("getCasesForFolderSelection", () => {
 
   it("uses recursive listing for parent suite with nested child folders", () => {
     const nestedRows = [
-      { file_path: ".gitoza/test/cases/auth/parent/direct.yaml", case_id: "TC-1", title: "Direct" },
-      { file_path: ".gitoza/test/cases/auth/parent/child/nested.yaml", case_id: "TC-2", title: "Nested" },
+      { file_path: ".gitoza/test/cases/auth/parent/direct.md", case_id: "TC-1", title: "Direct" },
+      { file_path: ".gitoza/test/cases/auth/parent/child/nested.md", case_id: "TC-2", title: "Nested" },
     ];
     const nestedTree = [
       {
@@ -141,9 +141,9 @@ describe("getCasesForFolderSelection", () => {
 
 describe("buildGroupedCaseListEntries", () => {
   const rows = [
-    { file_path: ".gitoza/test/cases/auth/login.yaml", case_id: "TC-1", title: "Login" },
-    { file_path: ".gitoza/test/cases/auth/debug/smoke.yaml", case_id: "TC-2", title: "Smoke" },
-    { file_path: ".gitoza/test/cases/auth/debug/edge.yaml", case_id: "TC-3", title: "Edge" },
+    { file_path: ".gitoza/test/cases/auth/login.md", case_id: "TC-1", title: "Login" },
+    { file_path: ".gitoza/test/cases/auth/debug/smoke.md", case_id: "TC-2", title: "Smoke" },
+    { file_path: ".gitoza/test/cases/auth/debug/edge.md", case_id: "TC-3", title: "Edge" },
   ];
   const tree = [
     {
@@ -182,8 +182,8 @@ describe("buildGroupedCaseListEntries", () => {
 
   it("groups parent suite with nested child folder", () => {
     const nestedRows = [
-      { file_path: ".gitoza/test/cases/auth/parent/direct.yaml", case_id: "TC-1", title: "Direct" },
-      { file_path: ".gitoza/test/cases/auth/parent/child/nested.yaml", case_id: "TC-2", title: "Nested" },
+      { file_path: ".gitoza/test/cases/auth/parent/direct.md", case_id: "TC-1", title: "Direct" },
+      { file_path: ".gitoza/test/cases/auth/parent/child/nested.md", case_id: "TC-2", title: "Nested" },
     ];
     const nestedTree = [
       {

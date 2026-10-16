@@ -28,8 +28,8 @@ const API_TREE = [
 ];
 
 const ROWS = [
-  { file_path: ".gitoza/test/cases/auth/login/a.yaml", case_id: "TC-1", title: "A" },
-  { file_path: ".gitoza/test/cases/auth/debug/b.yaml", case_id: "TC-2", title: "B" },
+  { file_path: ".gitoza/test/cases/auth/login/a.md", case_id: "TC-1", title: "A" },
+  { file_path: ".gitoza/test/cases/auth/debug/b.md", case_id: "TC-2", title: "B" },
 ];
 
 let container = null;

@@ -54,7 +54,7 @@ async function renderHost(props) {
 describe("useRunCaseListWindow", () => {
   it("loads first window when run folder is selected", async () => {
     vi.mocked(listRunCases).mockResolvedValue({
-      items: [{ file_path: "a.yaml", case_id: "A" }],
+      items: [{ file_path: "a.md", case_id: "A" }],
       total: 1,
     });
 
@@ -80,11 +80,11 @@ describe("useRunCaseListWindow", () => {
   it("resets when folderPath changes", async () => {
     vi.mocked(listRunCases)
       .mockResolvedValueOnce({
-        items: [{ file_path: "a.yaml" }],
+        items: [{ file_path: "a.md" }],
         total: 1,
       })
       .mockResolvedValueOnce({
-        items: [{ file_path: "b.yaml" }],
+        items: [{ file_path: "b.md" }],
         total: 1,
       });
 
@@ -93,25 +93,25 @@ describe("useRunCaseListWindow", () => {
       folderPath: "__run__/run-1/.gitoza/test/cases/auth/login",
       repoSlug: "repo-1",
     });
-    expect(latest.items[0]?.file_path).toBe("a.yaml");
+    expect(latest.items[0]?.file_path).toBe("a.md");
 
     await renderHost({
       runId: "run-1",
       folderPath: "__run__/run-1/.gitoza/test/cases/auth/signup",
       repoSlug: "repo-1",
     });
-    expect(latest.items[0]?.file_path).toBe("b.yaml");
+    expect(latest.items[0]?.file_path).toBe("b.md");
     expect(listRunCases).toHaveBeenCalledTimes(2);
   });
 
   it("loadMore appends next chunk", async () => {
     vi.mocked(listRunCases)
       .mockResolvedValueOnce({
-        items: [{ file_path: "a.yaml" }],
+        items: [{ file_path: "a.md" }],
         total: 2,
       })
       .mockResolvedValueOnce({
-        items: [{ file_path: "b.yaml" }],
+        items: [{ file_path: "b.md" }],
         total: 2,
       });
 
@@ -139,7 +139,7 @@ describe("useRunCaseListWindow", () => {
   it("calls onItemsFetched with loaded items", async () => {
     const onItemsFetched = vi.fn();
     vi.mocked(listRunCases).mockResolvedValue({
-      items: [{ file_path: "a.yaml" }],
+      items: [{ file_path: "a.md" }],
       total: 1,
     });
 
@@ -150,7 +150,7 @@ describe("useRunCaseListWindow", () => {
       onItemsFetched,
     });
 
-    expect(onItemsFetched).toHaveBeenCalledWith("run-1", [{ file_path: "a.yaml" }]);
+    expect(onItemsFetched).toHaveBeenCalledWith("run-1", [{ file_path: "a.md" }]);
   });
 
   it("does not fetch when disabled", async () => {

@@ -237,7 +237,7 @@ function WikiPage({
       clearPageSelection();
       setExpanded((prev) => {
         const next = new Set(prev);
-        for (const key of wikiExpandKeysFromFilePath(`${folderPath}/x.yaml`)) next.add(key);
+        for (const key of wikiExpandKeysFromFilePath(`${folderPath}/x.md`)) next.add(key);
         return next;
       });
     },
@@ -255,7 +255,7 @@ function WikiPage({
     }
     if (leaving) {
       setExpanded((prev) => {
-        const keys = wikiExpandKeysFromFilePath(`${leaving}/x.yaml`);
+        const keys = wikiExpandKeysFromFilePath(`${leaving}/x.md`);
         const leaf = keys[keys.length - 1];
         if (!leaf || !prev.has(leaf)) return prev;
         const next = new Set(prev);
@@ -423,7 +423,7 @@ function WikiPage({
       setCreatingPageInFolder(folder);
       setExpanded((prev) => {
         const next = new Set(prev);
-        for (const key of wikiExpandKeysFromFilePath(`${folder}/x.yaml`)) next.add(key);
+        for (const key of wikiExpandKeysFromFilePath(`${folder}/x.md`)) next.add(key);
         return next;
       });
     },
@@ -524,7 +524,7 @@ function WikiPage({
         setCreatingFolderInPath(parentPath);
         setExpanded((prev) => {
           const next = new Set(prev);
-          for (const key of wikiExpandKeysFromFilePath(`${parentPath}/x.yaml`)) next.add(key);
+          for (const key of wikiExpandKeysFromFilePath(`${parentPath}/x.md`)) next.add(key);
           return next;
         });
         return;
@@ -539,7 +539,7 @@ function WikiPage({
           setSelectedFolderPath(res.folder_path);
           setExpanded((prev) => {
             const next = new Set(prev);
-            for (const key of wikiExpandKeysFromFilePath(`${res.folder_path}/x.yaml`)) {
+            for (const key of wikiExpandKeysFromFilePath(`${res.folder_path}/x.md`)) {
               next.add(key);
             }
             return next;
@@ -920,7 +920,7 @@ function WikiPage({
           setCreatingFolderInPath(dir);
           setExpanded((prev) => {
             const next = new Set(prev);
-            for (const key of wikiExpandKeysFromFilePath(`${dir}/x.yaml`)) next.add(key);
+            for (const key of wikiExpandKeysFromFilePath(`${dir}/x.md`)) next.add(key);
             return next;
           });
         },
@@ -1041,7 +1041,7 @@ function WikiPage({
                 setCreatingFolderInPath(parent);
                 setExpanded((prev) => {
                   const next = new Set(prev);
-                  for (const key of wikiExpandKeysFromFilePath(`${parent}/x.yaml`)) next.add(key);
+                  for (const key of wikiExpandKeysFromFilePath(`${parent}/x.md`)) next.add(key);
                   return next;
                 });
                 return;

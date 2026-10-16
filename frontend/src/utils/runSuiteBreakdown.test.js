@@ -12,12 +12,12 @@ describe("buildSuiteBreakdownRows", () => {
   it("returns flat rows with breadcrumb labels for nested suites", () => {
     const rows = buildSuiteBreakdownRows([
       {
-        file_path: `${PROJECT}/root.yaml`,
+        file_path: `${PROJECT}/root.md`,
         case_id: "TC-1",
         result: "passed",
       },
       {
-        file_path: `${SUITE}/a.yaml`,
+        file_path: `${SUITE}/a.md`,
         case_id: "TC-2",
         result: "failed",
       },
@@ -30,7 +30,7 @@ describe("buildSuiteBreakdownRows", () => {
   it("appends Other locations row for non-standard paths", () => {
     const rows = buildSuiteBreakdownRows([
       {
-        file_path: "custom/path/case.yaml",
+        file_path: "custom/path/case.md",
         case_id: "TC-X",
         result: "passed",
       },

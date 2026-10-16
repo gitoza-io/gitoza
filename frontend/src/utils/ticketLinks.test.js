@@ -94,12 +94,12 @@ describe("mergeEntityLinkResults", () => {
   it("puts tickets before wiki pages and normalizes fields", () => {
     expect(
       mergeEntityLinkResults(
-        [{ ticket_id: "T-2", title: "Second", file_path: "a.yaml" }],
-        [{ page_id: "W-1", title: "Page", file_path: "w.yaml" }],
+        [{ ticket_id: "T-2", title: "Second", file_path: "a.md" }],
+        [{ page_id: "W-1", title: "Page", file_path: "w.md" }],
       ),
     ).toEqual([
-      { kind: "ticket", id: "T-2", title: "Second", file_path: "a.yaml" },
-      { kind: "wiki", id: "W-1", title: "Page", file_path: "w.yaml" },
+      { kind: "ticket", id: "T-2", title: "Second", file_path: "a.md" },
+      { kind: "wiki", id: "W-1", title: "Page", file_path: "w.md" },
     ]);
   });
 

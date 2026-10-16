@@ -24,7 +24,7 @@ export function computeRenamedCasePath(filePath, newCaseId) {
   const parent = slash >= 0 ? norm.slice(0, slash) : "";
   const filename = slash >= 0 ? norm.slice(slash + 1) : norm;
   const dot = filename.lastIndexOf(".");
-  const ext = dot >= 0 ? filename.slice(dot) : ".yaml";
+  const ext = dot >= 0 ? filename.slice(dot) : ".md";
   const newFile = `${newCaseId}${ext}`;
   return parent ? `${parent}/${newFile}` : newFile;
 }

@@ -52,28 +52,28 @@ describe("hashSearchChips", () => {
 
 describe("mergeCaseWindowItems", () => {
   it("appends without duplicate file_path", () => {
-    const existing = [{ file_path: "a.yaml", case_id: "A" }];
+    const existing = [{ file_path: "a.md", case_id: "A" }];
     const incoming = [
-      { file_path: "a.yaml", case_id: "A2" },
-      { file_path: "b.yaml", case_id: "B" },
+      { file_path: "a.md", case_id: "A2" },
+      { file_path: "b.md", case_id: "B" },
     ];
     expect(mergeCaseWindowItems(existing, incoming)).toEqual([
-      { file_path: "a.yaml", case_id: "A" },
-      { file_path: "b.yaml", case_id: "B" },
+      { file_path: "a.md", case_id: "A" },
+      { file_path: "b.md", case_id: "B" },
     ]);
   });
 });
 
 describe("removeCaseWindowPaths", () => {
   it("removes rows by path", () => {
-    const items = [{ file_path: "a.yaml" }, { file_path: "b.yaml" }];
-    expect(removeCaseWindowPaths(items, ["a.yaml"])).toEqual([{ file_path: "b.yaml" }]);
+    const items = [{ file_path: "a.md" }, { file_path: "b.md" }];
+    expect(removeCaseWindowPaths(items, ["a.md"])).toEqual([{ file_path: "b.md" }]);
   });
 });
 
 describe("patchAllWindowCachesRemove", () => {
   it("removes paths from every cache entry and decrements totals per entry", () => {
-    const sharedPath = `${SUITE_A}/case_one.yaml`;
+    const sharedPath = `${SUITE_A}/case_one.md`;
     const parentKey = caseListWindowQueryKey("repo", PROJECT, "", "all", false);
     const childKey = caseListWindowQueryKey("repo", SUITE_A, "", "all", false);
     const cacheMap = new Map([
@@ -82,7 +82,7 @@ describe("patchAllWindowCachesRemove", () => {
         {
           items: [
             { file_path: sharedPath, case_id: "case_one" },
-            { file_path: `${SUITE_B}/case_x.yaml`, case_id: "case_x" },
+            { file_path: `${SUITE_B}/case_x.md`, case_id: "case_x" },
           ],
           total: 2,
         },
@@ -99,7 +99,7 @@ describe("patchAllWindowCachesRemove", () => {
     patchAllWindowCachesRemove(cacheMap, [sharedPath]);
 
     expect(cacheMap.get(parentKey)).toEqual({
-      items: [{ file_path: `${SUITE_B}/case_x.yaml`, case_id: "case_x" }],
+      items: [{ file_path: `${SUITE_B}/case_x.md`, case_id: "case_x" }],
       total: 1,
     });
     expect(cacheMap.get(childKey)).toEqual({
@@ -110,33 +110,33 @@ describe("patchAllWindowCachesRemove", () => {
 
   it("no-ops when paths or cache map are empty", () => {
     const cacheMap = new Map([
-      ["k", { items: [{ file_path: "a.yaml" }], total: 1 }],
+      ["k", { items: [{ file_path: "a.md" }], total: 1 }],
     ]);
     patchAllWindowCachesRemove(cacheMap, []);
-    patchAllWindowCachesRemove(null, ["a.yaml"]);
+    patchAllWindowCachesRemove(null, ["a.md"]);
     expect(cacheMap.get("k")?.items).toHaveLength(1);
   });
 });
 
 describe("mergePendingCaseWindowRows", () => {
   it("upserts pending rows and counts new paths only", () => {
-    const items = [{ file_path: "a.yaml", case_id: "A", title: "From API" }];
+    const items = [{ file_path: "a.md", case_id: "A", title: "From API" }];
     const pending = [
-      { file_path: "a.yaml", case_id: "A", title: "Optimistic title" },
-      { file_path: "b.yaml", case_id: "B", title: "New case" },
+      { file_path: "a.md", case_id: "A", title: "Optimistic title" },
+      { file_path: "b.md", case_id: "B", title: "New case" },
     ];
     const { items: merged, addedCount } = mergePendingCaseWindowRows(items, pending);
     expect(merged).toEqual([
-      { file_path: "a.yaml", case_id: "A", title: "Optimistic title" },
-      { file_path: "b.yaml", case_id: "B", title: "New case" },
+      { file_path: "a.md", case_id: "A", title: "Optimistic title" },
+      { file_path: "b.md", case_id: "B", title: "New case" },
     ]);
     expect(addedCount).toBe(1);
   });
 
   it("returns unchanged items when pending is empty", () => {
-    const items = [{ file_path: "a.yaml" }];
+    const items = [{ file_path: "a.md" }];
     expect(mergePendingCaseWindowRows(items, [])).toEqual({
-      items: [{ file_path: "a.yaml" }],
+      items: [{ file_path: "a.md" }],
       addedCount: 0,
     });
   });
@@ -144,71 +144,71 @@ describe("mergePendingCaseWindowRows", () => {
 
 describe("upsertCaseWindowRow", () => {
   it("updates existing row", () => {
-    const items = [{ file_path: "a.yaml", title: "Old" }];
-    expect(upsertCaseWindowRow(items, { file_path: "a.yaml", title: "New" })).toEqual([
-      { file_path: "a.yaml", title: "New" },
+    const items = [{ file_path: "a.md", title: "Old" }];
+    expect(upsertCaseWindowRow(items, { file_path: "a.md", title: "New" })).toEqual([
+      { file_path: "a.md", title: "New" },
     ]);
   });
 
   it("appends new row", () => {
-    const items = [{ file_path: "a.yaml" }];
-    expect(upsertCaseWindowRow(items, { file_path: "b.yaml" })).toEqual([
-      { file_path: "a.yaml" },
-      { file_path: "b.yaml" },
+    const items = [{ file_path: "a.md" }];
+    expect(upsertCaseWindowRow(items, { file_path: "b.md" })).toEqual([
+      { file_path: "a.md" },
+      { file_path: "b.md" },
     ]);
   });
 });
 
 describe("patchCaseWindowRow", () => {
   it("patches matching row", () => {
-    const items = [{ file_path: "a.yaml", title: "Old" }];
-    expect(patchCaseWindowRow(items, "a.yaml", { title: "New" })).toEqual([
-      { file_path: "a.yaml", title: "New" },
+    const items = [{ file_path: "a.md", title: "Old" }];
+    expect(patchCaseWindowRow(items, "a.md", { title: "New" })).toEqual([
+      { file_path: "a.md", title: "New" },
     ]);
   });
 });
 
 describe("isDirectCaseInFolder", () => {
   it("matches yaml direct children only", () => {
-    expect(isDirectCaseInFolder(`${SUITE_A}/case_one.yaml`, SUITE_A)).toBe(true);
-    expect(isDirectCaseInFolder(`${SUITE_A}/nested/case_one.yaml`, SUITE_A)).toBe(false);
-    expect(isDirectCaseInFolder(`${SUITE_B}/case_one.yaml`, SUITE_A)).toBe(false);
+    expect(isDirectCaseInFolder(`${SUITE_A}/case_one.md`, SUITE_A)).toBe(true);
+    expect(isDirectCaseInFolder(`${SUITE_A}/nested/case_one.md`, SUITE_A)).toBe(false);
+    expect(isDirectCaseInFolder(`${SUITE_B}/case_one.md`, SUITE_A)).toBe(false);
   });
 });
 
 describe("resortCaseRowsForFolder", () => {
   it("reorders direct suite cases by case_id after rename append", () => {
     const rows = [
-      { file_path: `${SUITE_A}/case_a.yaml`, case_id: "case_a" },
-      { file_path: `${SUITE_A}/case_c.yaml`, case_id: "case_c" },
-      { file_path: `${SUITE_A}/case_z.yaml`, case_id: "case_z" },
+      { file_path: `${SUITE_A}/case_a.md`, case_id: "case_a" },
+      { file_path: `${SUITE_A}/case_c.md`, case_id: "case_c" },
+      { file_path: `${SUITE_A}/case_z.md`, case_id: "case_z" },
     ];
     const appended = [
-      ...rows.filter((r) => r.file_path !== `${SUITE_A}/case_c.yaml`),
-      { file_path: `${SUITE_A}/case_m.yaml`, case_id: "case_m" },
+      ...rows.filter((r) => r.file_path !== `${SUITE_A}/case_c.md`),
+      { file_path: `${SUITE_A}/case_m.md`, case_id: "case_m" },
     ];
     expect(resortCaseRowsForFolder(appended, SUITE_A)).toEqual([
-      { file_path: `${SUITE_A}/case_a.yaml`, case_id: "case_a" },
-      { file_path: `${SUITE_A}/case_m.yaml`, case_id: "case_m" },
-      { file_path: `${SUITE_A}/case_z.yaml`, case_id: "case_z" },
+      { file_path: `${SUITE_A}/case_a.md`, case_id: "case_a" },
+      { file_path: `${SUITE_A}/case_m.md`, case_id: "case_m" },
+      { file_path: `${SUITE_A}/case_z.md`, case_id: "case_z" },
     ]);
   });
 
   it("only reorders cases in the target folder for project-level rows", () => {
     const rows = [
-      { file_path: `${SUITE_A}/case_b.yaml`, case_id: "case_b" },
-      { file_path: `${SUITE_B}/case_x.yaml`, case_id: "case_x" },
-      { file_path: `${SUITE_A}/case_z.yaml`, case_id: "case_z" },
+      { file_path: `${SUITE_A}/case_b.md`, case_id: "case_b" },
+      { file_path: `${SUITE_B}/case_x.md`, case_id: "case_x" },
+      { file_path: `${SUITE_A}/case_z.md`, case_id: "case_z" },
     ];
     const appended = [
       rows[0],
       rows[1],
-      { file_path: `${SUITE_A}/case_m.yaml`, case_id: "case_m" },
+      { file_path: `${SUITE_A}/case_m.md`, case_id: "case_m" },
     ];
     expect(resortCaseRowsForFolder(appended, SUITE_A)).toEqual([
-      { file_path: `${SUITE_A}/case_b.yaml`, case_id: "case_b" },
-      { file_path: `${SUITE_B}/case_x.yaml`, case_id: "case_x" },
-      { file_path: `${SUITE_A}/case_m.yaml`, case_id: "case_m" },
+      { file_path: `${SUITE_A}/case_b.md`, case_id: "case_b" },
+      { file_path: `${SUITE_B}/case_x.md`, case_id: "case_x" },
+      { file_path: `${SUITE_A}/case_m.md`, case_id: "case_m" },
     ]);
   });
 });
@@ -216,9 +216,9 @@ describe("resortCaseRowsForFolder", () => {
 describe("sortCaseRowsByCaseId", () => {
   it("sorts all rows by case_id", () => {
     const rows = [
-      { file_path: `${SUITE_A}/z.yaml`, case_id: "z" },
-      { file_path: `${SUITE_A}/a.yaml`, case_id: "a" },
-      { file_path: `${SUITE_A}/m.yaml`, case_id: "m" },
+      { file_path: `${SUITE_A}/z.md`, case_id: "z" },
+      { file_path: `${SUITE_A}/a.md`, case_id: "a" },
+      { file_path: `${SUITE_A}/m.md`, case_id: "m" },
     ];
     expect(sortCaseRowsByCaseId(rows).map((r) => r.case_id)).toEqual(["a", "m", "z"]);
   });

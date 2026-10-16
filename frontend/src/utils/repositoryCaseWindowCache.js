@@ -16,7 +16,7 @@ export function isDirectCaseInFolder(filePath, folderPath) {
   const prefix = `${norm}/`;
   if (!fp.startsWith(prefix)) return false;
   const after = fp.slice(prefix.length);
-  return after.indexOf("/") === -1 && (after.endsWith(".yaml") || after.endsWith(".yml"));
+  return after.indexOf("/") === -1 && (after.endsWith(".md") || after.endsWith(".md"));
 }
 
 /**

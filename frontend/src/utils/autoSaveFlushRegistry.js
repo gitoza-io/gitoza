@@ -4,7 +4,7 @@
  * flushAllAutoSavesBeforeSync() (or flushAllAutoSavesBeforeIndex) so the working tree and DB
  * match in-memory drafts (see useDebouncedAutoSave — also flushes dirty snapshots on unmount).
  *
- * Pending run YAML (.results.yaml) is flushed inside index hooks and capture_pending_changes on the backend.
+ * Pending run shards (results.md) are flushed inside index hooks and capture_pending_changes on the backend.
  */
 
 const flushers = new Set();

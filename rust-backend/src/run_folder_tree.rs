@@ -351,14 +351,14 @@ mod tests {
             &conn,
             "r1",
             "run-1",
-            ".gitoza/test/cases/proj_a/case1.yaml",
+            ".gitoza/test/cases/proj_a/case1.md",
             Some("passed"),
         );
         seed_run_case(
             &conn,
             "r1",
             "run-1",
-            ".gitoza/test/cases/proj_a/suite_b/case2.yaml",
+            ".gitoza/test/cases/proj_a/suite_b/case2.md",
             Some("failed"),
         );
 
@@ -381,14 +381,14 @@ mod tests {
             &conn,
             "r1",
             "run-1",
-            &format!("{parent}/direct.yaml"),
+            &format!("{parent}/direct.md"),
             Some("passed"),
         );
         seed_run_case(
             &conn,
             "r1",
             "run-1",
-            &format!("{child}/nested.yaml"),
+            &format!("{child}/nested.md"),
             Some("failed"),
         );
 
@@ -420,7 +420,7 @@ mod tests {
             &conn,
             "r1",
             "run-1",
-            &format!("{child}/nested.yaml"),
+            &format!("{child}/nested.md"),
             Some("pending"),
         );
 
@@ -441,7 +441,7 @@ mod tests {
             &conn,
             "r1",
             "run-1",
-            ".gitoza/test/cases/proj_a/case1.yaml",
+            ".gitoza/test/cases/proj_a/case1.md",
             Some("passed"),
         );
         let tree =
@@ -460,14 +460,14 @@ mod tests {
             &conn,
             "r1",
             "run-1",
-            ".gitoza/test/cases/proj_a/case1.yaml",
+            ".gitoza/test/cases/proj_a/case1.md",
             Some("passed"),
         );
         seed_run_case(
             &conn,
             "r1",
             "run-1",
-            ".gitoza/test/cases/proj_b/case2.yaml",
+            ".gitoza/test/cases/proj_b/case2.md",
             Some("failed"),
         );
         let tree = build_run_folder_tree_scoped(

@@ -25,4 +25,4 @@ Link test runs to a release, see execution status at a glance on the release sum
 
 ### ⚠️ Upgrade note
 
-Runs store an optional `release` field in `head.yaml` / SQLite. No forced reindex for older workspaces: existing runs stay unlinked until you set a release. Restart the app after updating so module flags and the new run ↔ release APIs are active. If sidebar modules look wrong after a Settings change, reconnect the workspace or restart once.
+Runs store an optional `release` field in `head.md` / SQLite. No forced reindex for older workspaces: existing runs stay unlinked until you set a release. Restart the app after updating so module flags and the new run ↔ release APIs are active. If sidebar modules look wrong after a Settings change, reconnect the workspace or restart once.

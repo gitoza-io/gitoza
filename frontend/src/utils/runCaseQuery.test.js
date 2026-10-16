@@ -51,11 +51,11 @@ describe("fetchAllRunCasesForFolder", () => {
   it("paginates until all folder cases are loaded", async () => {
     vi.mocked(listRunCases)
       .mockResolvedValueOnce({
-        items: [{ file_path: "a.yaml" }, { file_path: "b.yaml" }],
+        items: [{ file_path: "a.md" }, { file_path: "b.md" }],
         total: 3,
       })
       .mockResolvedValueOnce({
-        items: [{ file_path: "c.yaml" }],
+        items: [{ file_path: "c.md" }],
         total: 3,
       });
 

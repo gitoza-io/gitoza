@@ -1,12 +1,9 @@
 export const RUNS_PREFIX = ".gitoza/test/runs/";
 
 const SHARD_SUFFIXES = [
-  { suffix: "/head.yaml", label: "head", order: 0 },
-  { suffix: "/head.yml", label: "head", order: 0 },
-  { suffix: "/cases.yaml", label: "cases", order: 1 },
-  { suffix: "/cases.yml", label: "cases", order: 1 },
-  { suffix: "/results.yaml", label: "results", order: 2 },
-  { suffix: "/results.yml", label: "results", order: 2 },
+  { suffix: "/head.md", label: "head", order: 0 },
+  { suffix: "/cases.md", label: "cases", order: 1 },
+  { suffix: "/results.md", label: "results", order: 2 },
 ];
 
 function normalizePath(filePath) {
@@ -131,7 +128,7 @@ export function groupRunChangedFiles(changedPaths) {
 const TITLE_KEYS = ["name", "title", "run_name"];
 
 /**
- * Best-effort parse of run display name from head.yaml pending diff text.
+ * Best-effort parse of run display name from head.md pending diff text.
  * @param {string} diffText
  * @returns {string | null}
  */

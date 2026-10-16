@@ -25,13 +25,11 @@ const WIKI_ID_PREFIX: &str = "W";
 const WIKI_ID_SUFFIX_LEN: usize = 6;
 const WIKI_ID_ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-fn is_yaml_ext(path: &Path) -> bool {
-    let ext = path
-        .extension()
+fn is_workspace_doc_file(path: &Path) -> bool {
+    path.extension()
         .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-    ext == "yaml" || ext == "yml"
+        .map(crate::paths::is_workspace_doc_ext)
+        .unwrap_or(false)
 }
 
 fn is_forbidden_wiki_folder_name(name: &str) -> bool {
@@ -121,9 +119,7 @@ fn parse_tags(map: &BTreeMap<String, serde_yaml::Value>) -> Vec<String> {
 
 fn page_id_from_file_name(file_name: &str) -> String {
     let lower = file_name.to_ascii_lowercase();
-    if let Some(stem) = lower.strip_suffix(".yaml") {
-        file_name[..stem.len()].to_string()
-    } else if let Some(stem) = lower.strip_suffix(".yml") {
+    if let Some(stem) = lower.strip_suffix(crate::paths::WORKSPACE_DOC_SUFFIX) {
         file_name[..stem.len()].to_string()
     } else {
         file_name.to_string()
@@ -160,10 +156,10 @@ pub(crate) fn is_wiki_yaml_path(file_rel: &str) -> bool {
     if name.is_empty() || name.starts_with('.') {
         return false;
     }
-    is_yaml_ext(Path::new(&p))
+    is_workspace_doc_file(Path::new(&p))
 }
 
-/// Nested wiki YAML: `.gitoza/wiki/{folders…}/{page}.yaml` (folders optional).
+/// Nested wiki YAML: `.gitoza/wiki/{folders…}/{page}.md` (folders optional).
 pub(crate) fn validate_wiki_file_path_for_write(file_path: &str) -> Result<String, String> {
     let file_path = file_path.trim_start_matches('/').trim().replace('\\', "/");
     if file_path.is_empty() || file_path.contains("..") || file_path.starts_with('/') {
@@ -190,8 +186,8 @@ pub(crate) fn validate_wiki_file_path_for_write(file_path: &str) -> Result<Strin
         }
     }
     let lower = file_name.to_ascii_lowercase();
-    if !(lower.ends_with(".yaml") || lower.ends_with(".yml")) {
-        return Err("Wiki page file must be .yaml or .yml".to_string());
+    if !(lower.ends_with(".md") || lower.ends_with(".md")) {
+        return Err("Wiki page file must be .md".to_string());
     }
     let stem = page_id_from_file_name(file_name);
     if !is_valid_case_id(&stem) {
@@ -236,8 +232,8 @@ pub(crate) fn validate_wiki_folder_path(folder_path: &str) -> Result<String, Str
 
 fn validate_wiki_yaml_file_name(file_name: &str) -> Result<(), String> {
     let lower = file_name.to_ascii_lowercase();
-    if !(lower.ends_with(".yaml") || lower.ends_with(".yml")) {
-        return Err("Wiki page file must be .yaml or .yml".to_string());
+    if !(lower.ends_with(".md") || lower.ends_with(".md")) {
+        return Err("Wiki page file must be .md".to_string());
     }
     let stem = page_id_from_file_name(file_name);
     if !is_valid_case_id(&stem) {
@@ -249,7 +245,7 @@ fn validate_wiki_yaml_file_name(file_name: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Archived wiki YAML: `.gitoza/wiki/.archive/{folders…}/{page}.yaml`.
+/// Archived wiki YAML: `.gitoza/wiki/.archive/{folders…}/{page}.md`.
 pub(crate) fn validate_wiki_archived_file_path_for_write(
     file_path: &str,
 ) -> Result<String, String> {
@@ -346,7 +342,7 @@ pub(crate) fn wiki_page_stem_from_title(title: &str) -> Result<String, String> {
 
 #[cfg(test)]
 pub(crate) fn wiki_page_file_exists(folder_dir: &Path, stem: &str) -> bool {
-    folder_dir.join(format!("{stem}.yaml")).exists()
+    folder_dir.join(format!("{stem}.md")).exists()
 }
 
 /// True when `page_id` matches the allocated form `W-XXXXXX`.
@@ -690,7 +686,7 @@ fn collect_wiki_yaml_rel_paths(
         if name.starts_with('.') {
             continue;
         }
-        if !p.is_file() || !is_yaml_ext(&p) {
+        if !p.is_file() || !is_workspace_doc_file(&p) {
             continue;
         }
         out.push(file_rel_from_repo(repo_path, &p));
@@ -965,7 +961,7 @@ pub(crate) fn apply_incremental_wiki_changes(
     Ok(())
 }
 
-/// Rename legacy slug-named wiki YAML to an allocated `W-XXXXXX.yaml`. Idempotent when already allocated.
+/// Rename legacy slug-named wiki YAML to an allocated `W-XXXXXX.md`. Idempotent when already allocated.
 pub(crate) fn migrate_legacy_wiki_page_if_needed(
     conn: &Connection,
     repo_path: &Path,
@@ -1012,7 +1008,7 @@ pub(crate) fn migrate_legacy_wiki_page_if_needed(
 
     let new_id = generate_unique_wiki_id(conn, slug, repo_path)?;
     let parent = abs.parent().unwrap_or(repo_path);
-    let new_abs = parent.join(format!("{new_id}.yaml"));
+    let new_abs = parent.join(format!("{new_id}.md"));
     if new_abs.exists() {
         anyhow::bail!(
             "Cannot migrate wiki page '{}': target '{}' already exists",
@@ -1461,19 +1457,19 @@ mod tests {
 
     #[test]
     fn validate_nested_and_root_wiki_paths() {
-        assert!(validate_wiki_file_path_for_write(".gitoza/wiki/intro.yaml").is_ok());
-        assert!(validate_wiki_file_path_for_write(".gitoza/wiki/arch/data/model.yaml").is_ok());
-        assert!(validate_wiki_file_path_for_write(".gitoza/wiki/.archive/x.yaml").is_err());
-        assert!(validate_wiki_archived_file_path_for_write(".gitoza/wiki/.archive/x.yaml").is_ok());
-        assert!(validate_wiki_file_path_for_read(".gitoza/wiki/.archive/x.yaml").is_ok());
-        assert!(validate_wiki_file_path_for_write(".gitoza/wiki/arch/../x.yaml").is_err());
-        assert!(validate_wiki_file_path_for_write(".gitoza/tasks/tickets/a/b.yaml").is_err());
+        assert!(validate_wiki_file_path_for_write(".gitoza/wiki/intro.md").is_ok());
+        assert!(validate_wiki_file_path_for_write(".gitoza/wiki/arch/data/model.md").is_ok());
+        assert!(validate_wiki_file_path_for_write(".gitoza/wiki/.archive/x.md").is_err());
+        assert!(validate_wiki_archived_file_path_for_write(".gitoza/wiki/.archive/x.md").is_ok());
+        assert!(validate_wiki_file_path_for_read(".gitoza/wiki/.archive/x.md").is_ok());
+        assert!(validate_wiki_file_path_for_write(".gitoza/wiki/arch/../x.md").is_err());
+        assert!(validate_wiki_file_path_for_write(".gitoza/tasks/tickets/a/b.md").is_err());
         assert_eq!(
-            wiki_folder_from_path(".gitoza/wiki/arch/data/model.yaml").as_deref(),
+            wiki_folder_from_path(".gitoza/wiki/arch/data/model.md").as_deref(),
             Some("arch/data")
         );
         assert_eq!(
-            wiki_folder_from_path(".gitoza/wiki/intro.yaml").as_deref(),
+            wiki_folder_from_path(".gitoza/wiki/intro.md").as_deref(),
             Some("")
         );
         assert!(validate_wiki_folder_path(".gitoza/wiki").is_ok());
@@ -1483,9 +1479,9 @@ mod tests {
 
     #[test]
     fn is_wiki_yaml_path_skips_dotfiles() {
-        assert!(is_wiki_yaml_path(".gitoza/wiki/demo/page.yaml"));
+        assert!(is_wiki_yaml_path(".gitoza/wiki/demo/page.md"));
         assert!(!is_wiki_yaml_path(".gitoza/wiki/demo/.gitkeep"));
-        assert!(!is_wiki_yaml_path(".gitoza/tasks/tickets/demo/T-1.yaml"));
+        assert!(!is_wiki_yaml_path(".gitoza/tasks/tickets/demo/T-1.md"));
     }
 
     #[test]
@@ -1494,12 +1490,12 @@ mod tests {
         let nested = repo.join(".gitoza/wiki/architecture/data");
         fs::create_dir_all(&nested).unwrap();
         fs::write(
-            nested.join("model.yaml"),
+            nested.join("model.md"),
             "---\ntitle: Data model\ntags: [arch]\n---\nBody\n",
         )
         .unwrap();
         fs::write(
-            repo.join(".gitoza/wiki/intro.yaml"),
+            repo.join(".gitoza/wiki/intro.md"),
             "---\ntitle: Intro\n---\nHi\n",
         )
         .unwrap();
@@ -1546,9 +1542,9 @@ mod tests {
         assert_eq!(items[0].title.as_deref(), Some("Data model"));
         assert!(items[0]
             .file_path
-            .ends_with(&format!("{}.yaml", items[0].page_id)));
+            .ends_with(&format!("{}.md", items[0].page_id)));
         assert!(!repo
-            .join(".gitoza/wiki/architecture/data/model.yaml")
+            .join(".gitoza/wiki/architecture/data/model.md")
             .exists());
 
         apply_incremental_wiki_changes(
@@ -1579,7 +1575,7 @@ mod tests {
         let id1 = generate_unique_wiki_id(&conn, "repo", &repo).unwrap();
         assert!(is_allocated_wiki_id(&id1));
         fs::write(
-            repo.join(format!(".gitoza/wiki/{id1}.yaml")),
+            repo.join(format!(".gitoza/wiki/{id1}.md")),
             "---\ntitle: A\n---\n",
         )
         .unwrap();
@@ -1591,7 +1587,7 @@ mod tests {
                 tags: vec![],
                 status: None,
                 folder: String::new(),
-                file_path: format!(".gitoza/wiki/{id1}.yaml"),
+                file_path: format!(".gitoza/wiki/{id1}.md"),
                 repo_slug: "repo".to_string(),
                 updated_at: None,
                 updated_by: None,
@@ -1613,14 +1609,14 @@ mod tests {
         let nested = repo.join(".gitoza/wiki/docs");
         fs::create_dir_all(&nested).unwrap();
         fs::write(
-            nested.join("legacy-page.yaml"),
+            nested.join("legacy-page.md"),
             "---\ntitle: Legacy Title\ntags: [a]\n---\nBody\n",
         )
         .unwrap();
         let other = repo.join(".gitoza/wiki/other");
         fs::create_dir_all(&other).unwrap();
         fs::write(
-            other.join("legacy-page.yaml"),
+            other.join("legacy-page.md"),
             "---\ntitle: Other Legacy\n---\n",
         )
         .unwrap();
@@ -1629,8 +1625,8 @@ mod tests {
         init_wiki_schema(&conn).unwrap();
         let n = reindex_wiki_for_repo(&conn, &repo, "repo").unwrap();
         assert_eq!(n, 2);
-        assert!(!nested.join("legacy-page.yaml").exists());
-        assert!(!other.join("legacy-page.yaml").exists());
+        assert!(!nested.join("legacy-page.md").exists());
+        assert!(!other.join("legacy-page.md").exists());
 
         let (items, total) = query_wiki_pages_db(
             &conn,
@@ -1698,7 +1694,7 @@ mod tests {
                 tags: vec![],
                 status: None,
                 folder: String::new(),
-                file_path: ".gitoza/wiki/W-ABC123.yaml".to_string(),
+                file_path: ".gitoza/wiki/W-ABC123.md".to_string(),
                 repo_slug: "repo".to_string(),
                 updated_at: None,
                 updated_by: None,
@@ -1749,7 +1745,7 @@ mod tests {
     #[test]
     fn apply_wiki_audit_from_db_overlays_sqlite() {
         let repo = temp_dir("wiki_audit");
-        let rel = ".gitoza/wiki/docs/page.yaml";
+        let rel = ".gitoza/wiki/docs/page.md";
         let abs = repo.join(rel);
         fs::create_dir_all(abs.parent().unwrap()).unwrap();
         fs::write(&abs, "---\ntitle: Page\nupdated_by: YamlUser\n---\nBody\n").unwrap();
@@ -1801,7 +1797,7 @@ mod tests {
         assert_eq!(wiki_page_stem_from_title("overview").unwrap(), "overview");
 
         let dir = temp_dir("wiki_stem_conflict");
-        fs::write(dir.join("overview.yaml"), "---\ntitle: overview\n---\n").unwrap();
+        fs::write(dir.join("overview.md"), "---\ntitle: overview\n---\n").unwrap();
         assert!(wiki_page_file_exists(&dir, "overview"));
         assert!(!wiki_page_file_exists(&dir, "other"));
         let _ = fs::remove_dir_all(&dir);
@@ -1810,23 +1806,23 @@ mod tests {
     #[test]
     fn wiki_archive_path_round_trip() {
         assert_eq!(
-            wiki_to_archive_path(".gitoza/wiki/arch/data/W-ABC123.yaml").unwrap(),
-            ".gitoza/wiki/.archive/arch/data/W-ABC123.yaml"
+            wiki_to_archive_path(".gitoza/wiki/arch/data/W-ABC123.md").unwrap(),
+            ".gitoza/wiki/.archive/arch/data/W-ABC123.md"
         );
         assert_eq!(
-            wiki_to_archive_path(".gitoza/wiki/W-ABC123.yaml").unwrap(),
-            ".gitoza/wiki/.archive/W-ABC123.yaml"
+            wiki_to_archive_path(".gitoza/wiki/W-ABC123.md").unwrap(),
+            ".gitoza/wiki/.archive/W-ABC123.md"
         );
-        assert!(wiki_to_archive_path(".gitoza/wiki/.archive/W-ABC123.yaml").is_err());
+        assert!(wiki_to_archive_path(".gitoza/wiki/.archive/W-ABC123.md").is_err());
         assert_eq!(
-            wiki_to_active_path(".gitoza/wiki/.archive/arch/data/W-ABC123.yaml").unwrap(),
-            ".gitoza/wiki/arch/data/W-ABC123.yaml"
+            wiki_to_active_path(".gitoza/wiki/.archive/arch/data/W-ABC123.md").unwrap(),
+            ".gitoza/wiki/arch/data/W-ABC123.md"
         );
         assert_eq!(
-            wiki_to_active_path(".gitoza/wiki/.archive/W-ABC123.yaml").unwrap(),
-            ".gitoza/wiki/W-ABC123.yaml"
+            wiki_to_active_path(".gitoza/wiki/.archive/W-ABC123.md").unwrap(),
+            ".gitoza/wiki/W-ABC123.md"
         );
-        assert!(wiki_to_active_path(".gitoza/wiki/W-ABC123.yaml").is_err());
+        assert!(wiki_to_active_path(".gitoza/wiki/W-ABC123.md").is_err());
     }
 
     #[test]
@@ -1841,7 +1837,7 @@ mod tests {
                 tags: vec![],
                 status: None,
                 folder: String::new(),
-                file_path: ".gitoza/wiki/W-ACT001.yaml".to_string(),
+                file_path: ".gitoza/wiki/W-ACT001.md".to_string(),
                 repo_slug: "repo".to_string(),
                 updated_at: None,
                 updated_by: None,
@@ -1856,7 +1852,7 @@ mod tests {
                 tags: vec![],
                 status: None,
                 folder: ".archive".to_string(),
-                file_path: ".gitoza/wiki/.archive/W-ARC001.yaml".to_string(),
+                file_path: ".gitoza/wiki/.archive/W-ARC001.md".to_string(),
                 repo_slug: "repo".to_string(),
                 updated_at: None,
                 updated_by: None,
@@ -1914,12 +1910,12 @@ mod tests {
         fs::create_dir_all(&active_dir).unwrap();
         fs::create_dir_all(&archive_dir).unwrap();
         fs::write(
-            active_dir.join("W-ACT001.yaml"),
+            active_dir.join("W-ACT001.md"),
             "---\ntitle: Active\n---\n",
         )
         .unwrap();
         fs::write(
-            archive_dir.join("W-ARC001.yaml"),
+            archive_dir.join("W-ARC001.md"),
             "---\ntitle: Archived\n---\n",
         )
         .unwrap();
@@ -1961,7 +1957,7 @@ mod tests {
                 tags: vec![],
                 status: None,
                 folder: "a".to_string(),
-                file_path: ".gitoza/wiki/a/W-MOV001.yaml".to_string(),
+                file_path: ".gitoza/wiki/a/W-MOV001.md".to_string(),
                 repo_slug: "repo".to_string(),
                 updated_at: None,
                 updated_by: None,
@@ -1971,8 +1967,8 @@ mod tests {
         let n = remap_wiki_file_path(
             &conn,
             "repo",
-            ".gitoza/wiki/a/W-MOV001.yaml",
-            ".gitoza/wiki/b/W-MOV001.yaml",
+            ".gitoza/wiki/a/W-MOV001.md",
+            ".gitoza/wiki/b/W-MOV001.md",
         )
         .unwrap();
         assert_eq!(n, 1);
@@ -1996,7 +1992,7 @@ mod tests {
         .unwrap();
         assert_eq!(items[0].page_id, "W-MOV001");
         assert_eq!(items[0].folder, "b");
-        assert_eq!(items[0].file_path, ".gitoza/wiki/b/W-MOV001.yaml");
+        assert_eq!(items[0].file_path, ".gitoza/wiki/b/W-MOV001.md");
     }
 
     #[test]
@@ -2005,14 +2001,14 @@ mod tests {
         let nested = repo.join(".gitoza/wiki/docs");
         fs::create_dir_all(&nested).unwrap();
         fs::write(
-            nested.join("W-ARC999.yaml"),
+            nested.join("W-ARC999.md"),
             "---\ntitle: Keep me\ntags: [docs]\n---\nHello body\n",
         )
         .unwrap();
         let archived =
-            archive_wiki_page_on_disk(&repo, ".gitoza/wiki/docs/W-ARC999.yaml", "cleanup").unwrap();
-        assert_eq!(archived, ".gitoza/wiki/.archive/docs/W-ARC999.yaml");
-        assert!(!nested.join("W-ARC999.yaml").exists());
+            archive_wiki_page_on_disk(&repo, ".gitoza/wiki/docs/W-ARC999.md", "cleanup").unwrap();
+        assert_eq!(archived, ".gitoza/wiki/.archive/docs/W-ARC999.md");
+        assert!(!nested.join("W-ARC999.md").exists());
         let archived_abs = repo.join(&archived);
         assert!(archived_abs.is_file());
         let raw = fs::read_to_string(&archived_abs).unwrap();
@@ -2021,7 +2017,7 @@ mod tests {
         assert!(raw.contains("Hello body"));
 
         let restored = restore_wiki_page_on_disk(&repo, &archived).unwrap();
-        assert_eq!(restored, ".gitoza/wiki/docs/W-ARC999.yaml");
+        assert_eq!(restored, ".gitoza/wiki/docs/W-ARC999.md");
         let restored_raw = fs::read_to_string(repo.join(&restored)).unwrap();
         assert!(!restored_raw.contains("archived_at:"));
         assert!(restored_raw.contains("Keep me"));
@@ -2044,18 +2040,18 @@ mod tests {
         let repo = temp_dir("wiki_archive_keeps_empty");
         mkdir_gitkeep(&repo, ".gitoza/wiki/empty");
         fs::write(
-            repo.join(".gitoza/wiki/W-ARC001.yaml"),
+            repo.join(".gitoza/wiki/W-ARC001.md"),
             "---\ntitle: Root page\n---\nBody\n",
         )
         .unwrap();
 
-        archive_wiki_page_on_disk(&repo, ".gitoza/wiki/W-ARC001.yaml", "").unwrap();
+        archive_wiki_page_on_disk(&repo, ".gitoza/wiki/W-ARC001.md", "").unwrap();
         prune_empty_wiki_dirs_upward(&repo, WIKI_ROOT_REL);
 
         assert!(exists(&repo, ".gitoza/wiki/empty"));
         assert!(exists(&repo, ".gitoza/wiki/empty/.gitkeep"));
-        assert!(!exists(&repo, ".gitoza/wiki/W-ARC001.yaml"));
-        assert!(exists(&repo, ".gitoza/wiki/.archive/W-ARC001.yaml"));
+        assert!(!exists(&repo, ".gitoza/wiki/W-ARC001.md"));
+        assert!(exists(&repo, ".gitoza/wiki/.archive/W-ARC001.md"));
         let _ = fs::remove_dir_all(&repo);
     }
 
@@ -2063,7 +2059,7 @@ mod tests {
     fn prune_keeps_sibling_gitkeep_folder_at_wiki_root() {
         let repo = temp_dir("wiki_prune_root_gitkeep");
         mkdir_gitkeep(&repo, ".gitoza/wiki/empty");
-        let page = ".gitoza/wiki/W-KEEP01.yaml";
+        let page = ".gitoza/wiki/W-KEEP01.md";
         fs::write(repo.join(page), "---\ntitle: Root page\n---\nBody\n").unwrap();
         fs::remove_file(repo.join(page)).unwrap();
 
@@ -2078,7 +2074,7 @@ mod tests {
     fn prune_keeps_sibling_gitkeep_folder_under_same_parent() {
         let repo = temp_dir("wiki_prune_sibling_gitkeep");
         mkdir_gitkeep(&repo, ".gitoza/wiki/guides/empty");
-        let page = ".gitoza/wiki/guides/W-KEEP02.yaml";
+        let page = ".gitoza/wiki/guides/W-KEEP02.md";
         fs::create_dir_all(repo.join(".gitoza/wiki/guides")).unwrap();
         fs::write(repo.join(page), "---\ntitle: Guides page\n---\nBody\n").unwrap();
         fs::remove_file(repo.join(page)).unwrap();
@@ -2095,7 +2091,7 @@ mod tests {
     fn prune_keeps_gitkeep_folder_after_last_page_archived() {
         let repo = temp_dir("wiki_prune_keep_source_folder");
         mkdir_gitkeep(&repo, ".gitoza/wiki/docs");
-        let page = ".gitoza/wiki/docs/W-KEEP03.yaml";
+        let page = ".gitoza/wiki/docs/W-KEEP03.md";
         fs::write(repo.join(page), "---\ntitle: Docs page\n---\nBody\n").unwrap();
         fs::remove_file(repo.join(page)).unwrap();
 
@@ -2123,11 +2119,11 @@ mod tests {
         let repo = temp_dir("wiki_prune_sibling_no_gitkeep");
         fs::create_dir_all(repo.join(".gitoza/wiki/empty")).unwrap();
         fs::write(
-            repo.join(".gitoza/wiki/W-KEEP04.yaml"),
+            repo.join(".gitoza/wiki/W-KEEP04.md"),
             "---\ntitle: Root page\n---\nBody\n",
         )
         .unwrap();
-        fs::remove_file(repo.join(".gitoza/wiki/W-KEEP04.yaml")).unwrap();
+        fs::remove_file(repo.join(".gitoza/wiki/W-KEEP04.md")).unwrap();
 
         prune_empty_wiki_dirs_upward(&repo, WIKI_ROOT_REL);
 
