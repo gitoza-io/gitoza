@@ -1,12 +1,5 @@
 # Gitoza
 
-Local-first, Git-native test management — tickets, wiki, cases, and runs as **Markdown** in your repo (YAML frontmatter for structured fields). A practical alternative to TestRail for teams who want planning and verification in Git.
-
-[![GitHub stars](https://img.shields.io/github/stars/gitoza-io/gitoza?style=for-the-badge)](https://github.com/gitoza-io/gitoza)
-[![Latest release](https://img.shields.io/github/v/release/gitoza-io/gitoza?style=for-the-badge)](https://github.com/gitoza-io/gitoza/releases)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=for-the-badge)](LICENSE)
-[![Download](https://img.shields.io/badge/download-gitoza.com-0A7C5A?style=for-the-badge)](https://gitoza.com)
-
 **Gitoza** is a local-first desktop app for **test management** and **task tracking as files in Git** (Task-as-Code + Test-as-Code). Everything lives as Markdown in the repository—with YAML frontmatter for metadata—so the app runs on your machine with no central cloud database for that data.
 
 ![Gitoza — execute test cases in a suite with case preview](https://assets.gitoza.com/demos/readme-test-run-suite.gif)
@@ -88,14 +81,15 @@ flowchart LR
 - **In your Git repo** (branch `gitoza`): shared files under `.gitoza/`
 
 
-| In the repo                                     | What                                          |
-| ----------------------------------------------- | --------------------------------------------- |
-| `.gitoza/tasks/tickets/<project>/…`             | Tickets and releases (Markdown + frontmatter) |
-| `.gitoza/wiki/…`                                | Wiki pages (Markdown, nested folders)         |
-| `.gitoza/test/cases/<project>/…/<case_id>.md` | Test cases (Markdown body + YAML frontmatter) |
-| `.gitoza/test/runs/<run_id>/`                   | Test runs (`head.md` / `cases.md` / `results.md`) |
-| `.gitoza/test/templates/*.md`                   | Case templates (Markdown)                     |
-| `.gitoza/config.json`                           | Team project settings                         |
+| In the repo                                   | What                                              |
+| --------------------------------------------- | ------------------------------------------------- |
+| `.gitoza/tasks/tickets/<project>/…`           | Tickets and releases (Markdown + frontmatter)     |
+| `.gitoza/wiki/…`                              | Wiki pages (Markdown, nested folders)             |
+| `.gitoza/test/cases/<project>/…/<case_id>.md` | Test cases (Markdown body + YAML frontmatter)     |
+| `.gitoza/test/runs/<run_id>/`                 | Test runs (`head.md` / `cases.md` / `results.md`) |
+| `.gitoza/test/templates/*.md`                 | Case templates (Markdown)                         |
+| `.gitoza/config.json`                         | Team project settings                             |
+
 
 Task and test data stay on the dedicated `gitoza` branch (or a dedicated repo that uses that branch). You do not merge them into your code mainline—so tickets, wiki, and tests never pollute application source.
 
