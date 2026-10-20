@@ -254,6 +254,9 @@ pub(crate) fn validate_case_file_path_for_write(file_path: &str) -> Result<Strin
         .file_name()
         .and_then(|s| s.to_str())
         .unwrap_or("");
+    if crate::paths::is_project_meta_filename(name) || name.starts_with('.') {
+        return Err("Reserved project meta files are not cases".to_string());
+    }
     if !crate::paths::has_workspace_doc_ext(name) {
         return Err("Case file must be .md".to_string());
     }
@@ -2377,6 +2380,9 @@ pub(crate) fn index_cases_from_yaml_with_audit(
                     continue;
                 }
                 total += visit_dir(conn, repo_path, &p, repo_slug, ignore, audit)?;
+                continue;
+            }
+            if crate::paths::is_project_meta_filename(&name_s) || name_s.starts_with('.') {
                 continue;
             }
             let ext = p
@@ -4701,6 +4707,9 @@ fn discover_yaml_files_rec(
                 visit(out, &p, repo_path, ignore_dirs);
                 continue;
             }
+            if crate::paths::is_project_meta_filename(&name) || name.starts_with('.') {
+                continue;
+            }
             if p
                 .extension()
                 .and_then(|s| s.to_str())
@@ -4732,6 +4741,13 @@ impl file_truth_framework::EntityIndexer for CaseEntityIndexer {
         repo_path: &Path,
         repo_slug: &str,
     ) -> Result<Option<(String, Self::Entity)>> {
+        let name = file_path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("");
+        if crate::paths::is_project_meta_filename(name) || name.starts_with('.') {
+            return Ok(None);
+        }
         let d = match read_full_yaml(file_path)? {
             Some(x) => x,
             None => return Ok(None),
@@ -6850,6 +6866,18 @@ fn apply_incremental_case_changes(
     audit: &AuditStampSource,
 ) -> Result<()> {
     for rel in changed_cases {
+        let name = Path::new(rel)
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("");
+        if crate::paths::is_project_meta_filename(name) || name.starts_with('.') {
+            // Meta / reserved files are not cases; drop a stale index row if present.
+            conn.execute(
+                "DELETE FROM test_cases WHERE repo_slug = ? AND file_path = ?",
+                params![slug, rel],
+            )?;
+            continue;
+        }
         let abs = repo_path.join(rel);
         if abs.is_file() {
             let d = match read_full_yaml(&abs)? {
@@ -9902,6 +9930,9 @@ VALUES (?1, ?2, ?3, '2024-01-03')
         );
         assert!(validate_case_file_path_for_write("../.gitoza/test/cases/foo.md").is_err());
         assert!(validate_case_file_path_for_write(".gitoza/test/runs/x.md").is_err());
+        assert!(
+            validate_case_file_path_for_write(".gitoza/test/cases/proj/.project.md").is_err()
+        );
         assert!(validate_case_file_path_for_write(".gitoza/test/cases/proj/foo.md").is_ok());
     }
 
@@ -10617,6 +10648,31 @@ body
         .unwrap();
         let paths = discover_case_yaml_rel_paths(&repo);
         assert!(!paths.contains(&hidden.to_string()));
+    }
+
+    #[test]
+    fn discover_yaml_skips_case_project_meta() {
+        let repo = temp_dir("discover_skip_project_meta");
+        let meta = ".gitoza/test/cases/proj/.project.md";
+        let case = ".gitoza/test/cases/proj/TC-PROJ-AAAAAA.md";
+        fs::create_dir_all(repo.join(case).parent().unwrap()).unwrap();
+        fs::write(
+            &repo.join(meta),
+            "---\ncase_prefix: PROJ\n---\n\n",
+        )
+        .unwrap();
+        fs::write(
+            &repo.join(case),
+            r#"---
+title: Real case
+---
+body
+"#,
+        )
+        .unwrap();
+        let paths = discover_case_yaml_rel_paths(&repo);
+        assert!(!paths.contains(&meta.to_string()));
+        assert!(paths.contains(&case.to_string()));
     }
 
     #[test]
