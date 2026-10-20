@@ -441,6 +441,7 @@ pub(crate) fn remap_case_index_paths_by_prefix(
 }
 
 /// Update indexed `file_path` and `case_id` when a single case file is renamed in place.
+#[cfg(test)]
 pub(crate) fn remap_case_file_path(
     conn: &Connection,
     slug: &str,

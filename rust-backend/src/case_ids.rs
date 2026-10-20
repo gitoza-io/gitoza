@@ -282,6 +282,7 @@ pub(crate) fn ensure_case_prefix_for_directory(repo_path: &Path, directory: &str
 }
 
 /// Ensure prefix for an active project folder name.
+#[cfg(test)]
 pub(crate) fn ensure_case_prefix(repo_path: &Path, project: &str) -> Result<String> {
     let project_dir = case_project_dir(repo_path, project);
     ensure_case_prefix_at(repo_path, project, &project_dir)
