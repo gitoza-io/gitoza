@@ -852,7 +852,7 @@ pub async fn create_case(
         };
         if taken {
             return Err(ApiError::conflict(format!(
-                "Case '{requested}' already exists in this repository."
+                "Case '{requested}' already exists in this repository (case or ticket)."
             )));
         }
         requested
@@ -6959,13 +6959,28 @@ pub async fn create_ticket(
                 .map_err(|e| {
                     ApiError::internal(format!("Failed to resolve ticket prefix: {e:#}"))
                 })?;
-            crate::tickets::generate_unique_ticket_id(&conn, &slug, &project_dir, &prefix)
-                .map_err(|e| ApiError::internal(format!("{e:#}")))?
+            crate::tickets::generate_unique_ticket_id(
+                &conn,
+                &repo_path,
+                &slug,
+                &project_dir,
+                &prefix,
+            )
+            .map_err(|e| ApiError::internal(format!("{e:#}")))?
         } else {
             if !crate::tickets::is_valid_ticket_id(&requested) {
                 return Err(ApiError::bad_request(
                     "Invalid ticket_id. Use letters, numbers, underscores, and hyphens.",
                 ));
+            }
+            let taken = {
+                let conn = conn_arc.lock().unwrap();
+                crate::case_ids::entity_id_taken_in_repo(&conn, &repo_path, &slug, &requested)
+            };
+            if taken {
+                return Err(ApiError::conflict(format!(
+                    "Ticket '{requested}' already exists in this repository (ticket or case)."
+                )));
             }
             let file_path = project_dir.join(format!("{requested}.md"));
             if file_path.exists() {

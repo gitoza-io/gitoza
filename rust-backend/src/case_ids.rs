@@ -1,4 +1,5 @@
-//! Case ID minting: per-project `case_prefix` in `.project.md` + `{PREFIX}-{6}` ids.
+//! Case ID minting: per-project `case_prefix` in `.project.md` + `TC-{PREFIX}-{6}` ids.
+//! Stem uniqueness is global across cases and tickets in the repo.
 
 use std::path::{Path, PathBuf};
 
@@ -11,6 +12,10 @@ const PROJECT_META_FILE: &str = ".project.md";
 const CASE_ID_ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const CASE_ID_SUFFIX_LEN: usize = 6;
 const MINT_TRIES: usize = 64;
+/// Fixed kind marker so case ids are distinct from tickets (`{PREFIX}-{6}`).
+pub(crate) const CASE_KIND_PREFIX: &str = "TC";
+/// Mirror of tickets root (avoid importing `tickets` — that module calls into this one).
+const TICKETS_ROOT_REL: &str = ".gitoza/tasks/tickets";
 
 fn is_valid_case_prefix(prefix: &str) -> bool {
     let s = prefix.trim();
@@ -309,7 +314,16 @@ fn case_id_taken_in_db(conn: &Connection, slug: &str, case_id: &str) -> bool {
     .unwrap_or(false)
 }
 
-fn case_stem_exists_on_disk(cases_root: &Path, case_id: &str) -> bool {
+fn ticket_id_taken_in_db(conn: &Connection, slug: &str, ticket_id: &str) -> bool {
+    conn.query_row(
+        "SELECT 1 FROM tickets WHERE repo_slug = ?1 AND ticket_id = ?2 LIMIT 1",
+        params![slug, ticket_id],
+        |_| Ok(true),
+    )
+    .unwrap_or(false)
+}
+
+fn md_stem_exists_under(root: &Path, stem: &str) -> bool {
     fn walk(dir: &Path, needle: &str) -> bool {
         let Ok(rd) = std::fs::read_dir(dir) else {
             return false;
@@ -337,43 +351,56 @@ fn case_stem_exists_on_disk(cases_root: &Path, case_id: &str) -> bool {
         }
         false
     }
-    if !cases_root.is_dir() {
+    if !root.is_dir() {
         return false;
     }
-    walk(cases_root, case_id)
+    walk(root, stem)
 }
 
-/// True if `case_id` is already used in the repo (index or on disk under cases/).
+/// True if `id` is already used as a case or ticket stem in this repo (DB or disk).
+pub(crate) fn entity_id_taken_in_repo(
+    conn: &Connection,
+    repo_path: &Path,
+    slug: &str,
+    id: &str,
+) -> bool {
+    if case_id_taken_in_db(conn, slug, id) || ticket_id_taken_in_db(conn, slug, id) {
+        return true;
+    }
+    let cases_root = repo_path.join(CASES_PREFIX.trim_end_matches('/'));
+    if md_stem_exists_under(&cases_root, id) {
+        return true;
+    }
+    let tickets_root = repo_path.join(TICKETS_ROOT_REL);
+    md_stem_exists_under(&tickets_root, id)
+}
+
+/// True if `case_id` is already used in the repo (cases or tickets).
 pub(crate) fn case_id_taken_in_repo(
     conn: &Connection,
     repo_path: &Path,
     slug: &str,
     case_id: &str,
 ) -> bool {
-    if case_id_taken_in_db(conn, slug, case_id) {
-        return true;
-    }
-    let cases_root = repo_path.join(CASES_PREFIX.trim_end_matches('/'));
-    case_stem_exists_on_disk(&cases_root, case_id)
+    entity_id_taken_in_repo(conn, repo_path, slug, case_id)
 }
 
-/// Generate `{PREFIX}-{6}` not used in the cases tree or `test_cases` index.
+/// Generate `TC-{PREFIX}-{6}` not used by any case or ticket in the repo.
 pub(crate) fn generate_unique_case_id(
     conn: &Connection,
     repo_path: &Path,
     slug: &str,
     prefix: &str,
 ) -> Result<String> {
-    let cases_root = repo_path.join(CASES_PREFIX.trim_end_matches('/'));
     for _ in 0..MINT_TRIES {
-        let id = format!("{prefix}-{}", random_alnum_suffix(CASE_ID_SUFFIX_LEN));
+        let id = format!(
+            "{CASE_KIND_PREFIX}-{prefix}-{}",
+            random_alnum_suffix(CASE_ID_SUFFIX_LEN)
+        );
         if !is_valid_case_id(&id) {
             continue;
         }
-        if case_id_taken_in_db(conn, slug, &id) {
-            continue;
-        }
-        if case_stem_exists_on_disk(&cases_root, &id) {
+        if entity_id_taken_in_repo(conn, repo_path, slug, &id) {
             continue;
         }
         return Ok(id);
@@ -398,6 +425,26 @@ mod tests {
         );
     }
 
+    fn open_entity_tables() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE test_cases (
+               case_id TEXT NOT NULL,
+               file_path TEXT NOT NULL,
+               repo_slug TEXT NOT NULL,
+               PRIMARY KEY (repo_slug, file_path)
+             );
+             CREATE TABLE tickets (
+               ticket_id TEXT NOT NULL,
+               file_path TEXT NOT NULL,
+               repo_slug TEXT NOT NULL,
+               PRIMARY KEY (repo_slug, file_path)
+             );",
+        )
+        .unwrap();
+        conn
+    }
+
     #[test]
     fn ensure_prefix_and_mint_unique() {
         let tmp = tempdir().unwrap();
@@ -411,19 +458,14 @@ mod tests {
         let meta_path = case_project_dir(repo, proj).join(PROJECT_META_FILE);
         assert!(meta_path.is_file());
 
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch(
-            "CREATE TABLE test_cases (
-               case_id TEXT NOT NULL,
-               file_path TEXT NOT NULL,
-               repo_slug TEXT NOT NULL,
-               PRIMARY KEY (repo_slug, file_path)
-             );",
-        )
-        .unwrap();
+        let conn = open_entity_tables();
         let id1 = generate_unique_case_id(&conn, repo, "slug", &prefix).unwrap();
-        assert!(id1.starts_with(&format!("{prefix}-")));
-        assert_eq!(id1.len(), prefix.len() + 1 + CASE_ID_SUFFIX_LEN);
+        let expected_prefix = format!("{CASE_KIND_PREFIX}-{prefix}-");
+        assert!(id1.starts_with(&expected_prefix));
+        assert_eq!(
+            id1.len(),
+            CASE_KIND_PREFIX.len() + 1 + prefix.len() + 1 + CASE_ID_SUFFIX_LEN
+        );
 
         // Occupy id1 on disk; next mint must differ.
         std::fs::write(
@@ -433,6 +475,29 @@ mod tests {
         .unwrap();
         let id2 = generate_unique_case_id(&conn, repo, "slug", &prefix).unwrap();
         assert_ne!(id1, id2);
+        assert!(id2.starts_with(&expected_prefix));
+    }
+
+    #[test]
+    fn mint_skips_stem_taken_by_ticket_on_disk() {
+        let tmp = tempdir().unwrap();
+        let repo = tmp.path();
+        let proj = "pay";
+        std::fs::create_dir_all(case_project_dir(repo, proj)).unwrap();
+        let prefix = ensure_case_prefix(repo, proj).unwrap();
+        let conn = open_entity_tables();
+
+        // Force collision path: plant a ticket with the next minted id is hard;
+        // instead plant a specific TC-… stem and assert entity_id_taken blocks it.
+        let blocker = format!("{CASE_KIND_PREFIX}-{prefix}-AAAAAA");
+        let tickets_proj = repo.join(TICKETS_ROOT_REL).join("pay");
+        std::fs::create_dir_all(&tickets_proj).unwrap();
+        std::fs::write(tickets_proj.join(format!("{blocker}.md")), "---\ntitle: t\n---\n").unwrap();
+        assert!(entity_id_taken_in_repo(&conn, repo, "slug", &blocker));
+
+        let minted = generate_unique_case_id(&conn, repo, "slug", &prefix).unwrap();
+        assert_ne!(minted, blocker);
+        assert!(minted.starts_with(&format!("{CASE_KIND_PREFIX}-{prefix}-")));
     }
 
     #[test]
