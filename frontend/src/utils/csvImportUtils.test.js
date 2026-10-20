@@ -41,4 +41,15 @@ describe("buildCasePayloadFromRow status", () => {
     );
     expect(result.payload?.requirement_ids).toEqual(["DEMO-A", "DEMO-B"]);
   });
+
+  it("allows empty case id for backend auto-mint", () => {
+    const result = buildCasePayloadFromRow(
+      { id: "", title: "Auto id case" },
+      mapping,
+      baseOptions,
+      1,
+    );
+    expect(result.payload?.case_id).toBe("");
+    expect(result.payload?.title).toBe("Auto id case");
+  });
 });

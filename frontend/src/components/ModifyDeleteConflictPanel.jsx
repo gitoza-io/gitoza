@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Copy, FileCheck } from "lucide-react";
+import { AlertTriangle, Check, Copy, FileCheck, Users } from "lucide-react";
 import {
   CONFLICT_DISK_RESOLUTION_HINT,
   CONFLICT_KEEP_BOTH_ENTITY,
@@ -19,6 +19,7 @@ function ChoiceCard({ selected, onClick, icon: Icon, title, helper, accent = "in
     accent === "rose"
       ? "text-rose-600 dark:text-rose-400"
       : "text-indigo-600 dark:text-indigo-400";
+  const checkBg = accent === "rose" ? "bg-rose-600" : "bg-indigo-600";
   return (
     <button
       type="button"
@@ -30,7 +31,9 @@ function ChoiceCard({ selected, onClick, icon: Icon, title, helper, accent = "in
       }`}
     >
       {selected ? (
-        <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white">
+        <span
+          className={`absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full text-white ${checkBg}`}
+        >
           <Check className="h-3 w-3" />
         </span>
       ) : null}
@@ -60,7 +63,11 @@ export default function ModifyDeleteConflictPanel({ file, action, onActionChange
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 gap-3 ${hasCompanionPath ? "" : "md:grid-cols-2"}`}>
+      <div
+        className={`grid grid-cols-1 gap-3 ${
+          hasCompanionPath ? "md:grid-cols-3" : "md:grid-cols-2"
+        }`}
+      >
         <ChoiceCard
           selected={action === "keep_mine"}
           onClick={() => onActionChange("keep_mine")}
@@ -77,24 +84,14 @@ export default function ModifyDeleteConflictPanel({ file, action, onActionChange
             helper={CONFLICT_KEEP_BOTH_ENTITY_HELPER}
           />
         ) : null}
+        <ChoiceCard
+          selected={action === "keep_theirs"}
+          onClick={() => onActionChange("keep_theirs")}
+          icon={Users}
+          title={CONFLICT_KEEP_THEIRS_ENTITY(entity, hasCompanionPath)}
+          helper={CONFLICT_KEEP_THEIRS_ENTITY_HELPER(hasCompanionPath)}
+        />
       </div>
-
-      <button
-        type="button"
-        onClick={() => onActionChange("keep_theirs")}
-        className={`text-xs underline-offset-2 hover:underline ${
-          action === "keep_theirs"
-            ? "font-medium text-indigo-600 dark:text-indigo-400"
-            : "text-slate-500 dark:text-slate-400"
-        }`}
-      >
-        {CONFLICT_KEEP_THEIRS_ENTITY(entity, hasCompanionPath)}
-      </button>
-      {action === "keep_theirs" ? (
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          {CONFLICT_KEEP_THEIRS_ENTITY_HELPER(hasCompanionPath)}
-        </p>
-      ) : null}
 
       <p className="text-xs text-slate-500 dark:text-slate-400">{CONFLICT_DISK_RESOLUTION_HINT}</p>
     </div>

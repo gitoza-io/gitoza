@@ -483,7 +483,7 @@ export function buildCasePayloadFromRow(row, mapping, options, rowIndex) {
     repoSlug,
   } = options;
 
-  if (!directory || !mapping?.caseIdColumn || !mapping?.titleColumn) {
+  if (!directory || !mapping?.titleColumn) {
     return { skipped: { index: rowIndex, reason: "Missing directory or mapping" } };
   }
 
@@ -502,13 +502,11 @@ export function buildCasePayloadFromRow(row, mapping, options, rowIndex) {
     ].filter(Boolean),
   );
 
-  let caseId = (row[mapping.caseIdColumn] ?? "").trim();
+  let caseId = mapping.caseIdColumn ? (row[mapping.caseIdColumn] ?? "").trim() : "";
   const title = (row[mapping.titleColumn] ?? "").trim();
   if (doSanitize && caseId) caseId = sanitizeCaseId(caseId);
-  if (!caseId) {
-    return { skipped: { index: rowIndex, reason: "Empty case ID" } };
-  }
-  if (!CASE_ID_RE.test(caseId)) {
+  // Empty case ID → backend auto-mints a repo-unique id.
+  if (caseId && !CASE_ID_RE.test(caseId)) {
     return { skipped: { index: rowIndex, reason: `Invalid case ID: ${caseId}` } };
   }
   if (!title) {
@@ -566,7 +564,7 @@ export function buildCasePayloadFromRow(row, mapping, options, rowIndex) {
  * @returns {{ payloads: Array<object>, skipped: Array<{ index: number; reason: string }> }}
  */
 export function buildCasePayloads(rows, mapping, options = {}) {
-  if (!options.directory || !mapping?.caseIdColumn || !mapping?.titleColumn) {
+  if (!options.directory || !mapping?.titleColumn) {
     return { payloads: [], skipped: [] };
   }
 

@@ -505,6 +505,12 @@ pub async fn create_project(
             "Failed to create project directory: {e:#}"
         )));
     }
+    if let Err(e) = crate::case_ids::init_case_project_meta(&repo_path, &name) {
+        let _ = std::fs::remove_dir_all(&project_dir);
+        return Err(ApiError::internal(format!(
+            "Failed to initialize case project meta: {e:#}"
+        )));
+    }
 
     let project_rel = crate::file_rel_from_repo(&repo_path, &project_dir);
     crate::mark_workplace_editing_best_effort(state, &slug, &repo_path).await;
@@ -765,13 +771,6 @@ pub async fn create_case(
     state: &AppState,
     payload: models::CreateTestCaseRequest,
 ) -> Result<models::CreateTestCaseResponse, ApiError> {
-    let case_id = payload.case_id.trim().to_string();
-    if !crate::is_valid_case_id(&case_id) {
-        return Err(ApiError::bad_request(
-            "Invalid case_id. Use letters, numbers, underscores, and hyphens.",
-        ));
-    }
-
     let slug = crate::resolve_repo_slug(state, payload.repo.as_deref())
         .map_err(|e| ApiError::bad_request(format!("{e:#}")))?;
     let repo_path = crate::resolve_repo_path(state, Some(&slug))
@@ -818,13 +817,6 @@ pub async fn create_case(
         project_dir.clone()
     };
 
-    let file_path = target_dir.join(format!("{case_id}.md"));
-    if file_path.exists() {
-        return Err(ApiError::conflict(format!(
-            "Case '{case_id}' already exists in this location."
-        )));
-    }
-
     let now_iso = Utc::now().to_rfc3339();
     let git_name = crate::resolve_git_user_name_cached(state, &repo_path, &slug).await;
     let review_enabled =
@@ -834,6 +826,45 @@ pub async fn create_case(
 
     let conn_arc = crate::open_repo_db(state, &slug)
         .map_err(|e| ApiError::internal(format!("Failed to open DB: {e:#}")))?;
+
+    let requested = payload.case_id.trim().to_string();
+    let case_id = if requested.is_empty() {
+        let prefix_dir = payload
+            .target_folder
+            .as_ref()
+            .map(|s| s.trim().replace('\\', "/"))
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| payload.directory.trim().replace('\\', "/"));
+        let prefix = crate::case_ids::ensure_case_prefix_for_directory(&repo_path, &prefix_dir)
+            .map_err(|e| ApiError::bad_request(format!("{e:#}")))?;
+        let conn = conn_arc.lock().unwrap();
+        crate::case_ids::generate_unique_case_id(&conn, &repo_path, &slug, &prefix)
+            .map_err(|e| ApiError::internal(format!("{e:#}")))?
+    } else {
+        if !crate::is_valid_case_id(&requested) {
+            return Err(ApiError::bad_request(
+                "Invalid case_id. Use letters, numbers, underscores, and hyphens.",
+            ));
+        }
+        let taken = {
+            let conn = conn_arc.lock().unwrap();
+            crate::case_ids::case_id_taken_in_repo(&conn, &repo_path, &slug, &requested)
+        };
+        if taken {
+            return Err(ApiError::conflict(format!(
+                "Case '{requested}' already exists in this repository (case or ticket)."
+            )));
+        }
+        requested
+    };
+
+    let file_path = target_dir.join(format!("{case_id}.md"));
+    if file_path.exists() {
+        return Err(ApiError::conflict(format!(
+            "Case '{case_id}' already exists in this location."
+        )));
+    }
+
     let assigned_to_canonical = if payload.assigned_to.trim().is_empty() {
         None
     } else {
@@ -1024,109 +1055,12 @@ pub async fn batch_create_cases(
 // ───────────────────────────────────────────────────────────────────────
 
 pub async fn rename_case(
-    state: &AppState,
-    payload: models::RenameCaseRequest,
+    _state: &AppState,
+    _payload: models::RenameCaseRequest,
 ) -> Result<models::RenameCaseResponse, ApiError> {
-    let slug = crate::resolve_repo_slug(state, payload.repo.as_deref())
-        .map_err(|e| ApiError::bad_request(format!("{e:#}")))?;
-    let repo_path = crate::resolve_repo_path(state, Some(&slug))
-        .map_err(|e| ApiError::bad_request(format!("{e:#}")))?;
-
-    let file_path = payload.file_path.trim().replace('\\', "/");
-    if file_path.is_empty() || file_path.contains("..") || file_path.starts_with('/') {
-        return Err(ApiError::bad_request("Invalid file_path"));
-    }
-    if !file_path.starts_with(crate::CASES_PREFIX)
-        || file_path == crate::CASES_PREFIX.trim_end_matches('/')
-    {
-        return Err(ApiError::bad_request(
-            "Case must be under .gitoza/test/cases/",
-        ));
-    }
-    if crate::is_archived_file_path(&file_path) {
-        return Err(ApiError::bad_request(
-            "Rename an archived case after restoring it to an active path.",
-        ));
-    }
-
-    let new_case_id = payload.new_case_id.trim().to_string();
-    if !crate::is_valid_case_id(&new_case_id) {
-        return Err(ApiError::bad_request(
-            "Invalid new_case_id. Use only letters, numbers, underscores, and hyphens.",
-        ));
-    }
-
-    let full_path = repo_path.join(&file_path);
-    if !full_path.is_file() {
-        return Err(ApiError::not_found(format!(
-            "Case file not found: {file_path}"
-        )));
-    }
-
-    let suffix = full_path
-        .extension()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-    if !matches!(suffix.as_str(), "md") {
-        return Err(ApiError::bad_request("Not a YAML case file."));
-    }
-
-    let cur_stem = full_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_string();
-    if new_case_id == cur_stem {
-        return Ok(models::RenameCaseResponse {
-            status: "ok".to_string(),
-            old_path: file_path.clone(),
-            new_path: file_path,
-            case_id: new_case_id,
-        });
-    }
-
-    let dest = full_path
-        .parent()
-        .unwrap_or(&repo_path)
-        .join(format!("{new_case_id}.{suffix}"));
-    if dest.exists() {
-        return Err(ApiError::conflict(format!(
-            "A case file named '{new_case_id}.{suffix}' already exists in this folder."
-        )));
-    }
-
-    std::fs::rename(&full_path, &dest)
-        .map_err(|e| ApiError::internal(format!("Failed to rename case file: {e:#}")))?;
-
-    let new_rel = dest
-        .strip_prefix(&repo_path)
-        .unwrap_or(&dest)
-        .to_string_lossy()
-        .replace('\\', "/");
-
-    let conn_arc = crate::open_repo_db(state, &slug)
-        .map_err(|e| ApiError::internal(format!("Failed to open DB: {e:#}")))?;
-    {
-        let conn = conn_arc.lock().unwrap();
-        let updated = crate::remap_case_file_path(&conn, &slug, &file_path, &new_rel, &new_case_id)
-            .map_err(|e| ApiError::internal(format!("Failed to remap case index: {e:#}")))?;
-        if updated == 0 {
-            return Err(ApiError::not_found(format!(
-                "Case index entry not found for: {file_path}"
-            )));
-        }
-    }
-
-    crate::mark_workplace_editing_best_effort(state, &slug, &repo_path).await;
-    let _ = crate::broadcast_refresh(state).await;
-
-    Ok(models::RenameCaseResponse {
-        status: "ok".to_string(),
-        old_path: file_path,
-        new_path: new_rel,
-        case_id: new_case_id,
-    })
+    Err(ApiError::bad_request(
+        "Case ID cannot be changed. Create a new case or edit the title instead.",
+    ))
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -7025,13 +6959,28 @@ pub async fn create_ticket(
                 .map_err(|e| {
                     ApiError::internal(format!("Failed to resolve ticket prefix: {e:#}"))
                 })?;
-            crate::tickets::generate_unique_ticket_id(&conn, &slug, &project_dir, &prefix)
-                .map_err(|e| ApiError::internal(format!("{e:#}")))?
+            crate::tickets::generate_unique_ticket_id(
+                &conn,
+                &repo_path,
+                &slug,
+                &project_dir,
+                &prefix,
+            )
+            .map_err(|e| ApiError::internal(format!("{e:#}")))?
         } else {
             if !crate::tickets::is_valid_ticket_id(&requested) {
                 return Err(ApiError::bad_request(
                     "Invalid ticket_id. Use letters, numbers, underscores, and hyphens.",
                 ));
+            }
+            let taken = {
+                let conn = conn_arc.lock().unwrap();
+                crate::case_ids::entity_id_taken_in_repo(&conn, &repo_path, &slug, &requested)
+            };
+            if taken {
+                return Err(ApiError::conflict(format!(
+                    "Ticket '{requested}' already exists in this repository (ticket or case)."
+                )));
             }
             let file_path = project_dir.join(format!("{requested}.md"));
             if file_path.exists() {

@@ -17,7 +17,8 @@ Workspace documents use the **`.md` extension only** (Markdown with YAML frontma
 | Path | Purpose |
 |------|---------|
 | `.gitoza/config.json` | Team project settings (modules, storage sync, review) |
-| `.gitoza/test/cases/<project>/…/<case_id>.md` | One test case per file (Markdown + YAML frontmatter) |
+| `.gitoza/test/cases/<project>/…/<case_id>.md` | One test case per file (Markdown + YAML frontmatter). App creates use auto ids `TC-{case_prefix}-{6}`; case id is not renamable in the UI. Stems are unique across cases **and** tickets in the repo |
+| `.gitoza/test/cases/<project>/.project.md` | Case project meta (`case_prefix`); allocated on first create like ticket prefixes |
 | `.gitoza/test/runs/<run_id>/` | Manual run folder (`head.md`, `cases.md`, `results.md` — frontmatter-only Markdown) |
 | `.gitoza/test/templates/*.md` | Case body templates (plain Markdown) |
 | `.gitoza/tasks/tickets/<project>/` | Tickets (`*.md`) and `.project.md` meta |

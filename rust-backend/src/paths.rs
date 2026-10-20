@@ -19,8 +19,13 @@ pub const WORKSPACE_DOC_EXT: &str = "md";
 /// Filename suffix including the leading dot (`".md"`).
 pub const WORKSPACE_DOC_SUFFIX: &str = ".md";
 
-/// Ticket project metadata filename under `.gitoza/tasks/tickets/{project}/`.
+/// Project metadata filename under ticket or case project roots (`case_prefix` / `ticket_prefix`).
 pub const PROJECT_META_FILE: &str = ".project.md";
+
+/// True when `name` is reserved project meta (not a case, ticket, or wiki page).
+pub fn is_project_meta_filename(name: &str) -> bool {
+    name.eq_ignore_ascii_case(PROJECT_META_FILE)
+}
 
 /// True when `ext` is the workspace document extension (no leading dot).
 pub fn is_workspace_doc_ext(ext: &str) -> bool {

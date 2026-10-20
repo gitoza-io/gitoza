@@ -760,9 +760,10 @@ pub(crate) fn delete_ticket_project(
     Ok(())
 }
 
-/// Generate `{PREFIX}-{6 random}` not used on disk or in the tickets index.
+/// Generate `{PREFIX}-{6 random}` not used by any ticket or case in the repo.
 pub(crate) fn generate_unique_ticket_id(
     conn: &Connection,
+    repo_path: &Path,
     slug: &str,
     project_dir: &Path,
     prefix: &str,
@@ -776,16 +777,10 @@ pub(crate) fn generate_unique_ticket_id(
         if path.exists() {
             continue;
         }
-        let taken = conn
-            .query_row(
-                "SELECT 1 FROM tickets WHERE repo_slug = ?1 AND ticket_id = ?2 LIMIT 1",
-                params![slug, id],
-                |_| Ok(true),
-            )
-            .unwrap_or(false);
-        if !taken {
-            return Ok(id);
+        if crate::case_ids::entity_id_taken_in_repo(conn, repo_path, slug, &id) {
+            continue;
         }
+        return Ok(id);
     }
     anyhow::bail!("Failed to allocate unique ticket id for prefix '{prefix}'")
 }

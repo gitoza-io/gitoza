@@ -93,7 +93,6 @@ import {
   listRuns,
   moveCase,
   quickSyncRepo,
-  renameCase,
   renameFolder,
   resolveRebase,
   restoreCase,
@@ -171,7 +170,6 @@ import { useCaseSearchResults } from "./hooks/useCaseSearchResults";
 import {
   buildCaseMoves,
   buildMovedCaseRows,
-  computeRenamedCasePath,
   parentFolderOfCasePath,
   resolveCaseRowsForSnapshot,
 } from "./utils/caseCatalogMove";
@@ -1882,27 +1880,20 @@ function App() {
     return createTestCasesBatch(payloads, activeRepoSlug);
   };
 
-  /** Case ID must match backend: letters, numbers, underscores, hyphens only. */
-  const CASE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-
   /**
-   * Inline create case from tree: only case_id (filename); title defaults to "new case".
-   * Rejects on validation or API failure so the inline row can show a hint and stay open.
+   * Create case from tree/list: backend mints a repo-unique case id.
+   * `caseId` is ignored (kept for call-site compatibility); title defaults to "New Test Case".
    */
-  const handleCommitInlineCase = async (parentDirPath, isProject, caseId) => {
-    const trimmed = caseId?.trim();
-    if (!trimmed) return;
-    if (!CASE_ID_RE.test(trimmed)) {
-      throw new Error("Use only letters, numbers, underscores, and hyphens.");
-    }
+  const handleCommitInlineCase = async (parentDirPath, isProject, _caseId) => {
+    if (!parentDirPath) return;
     const isProjectDir = isProject || isProjectDirectoryPath(parentDirPath);
     const directory = isProjectDir ? parentDirPath : parentDirPath.split("/").slice(0, -1).join("/");
     const target_folder = isProjectDir ? null : parentDirPath;
     const payload = {
       directory,
       target_folder: target_folder || undefined,
-      case_id: trimmed,
-      title: "new case",
+      case_id: "",
+      title: "New Test Case",
       priority: "medium",
       tags: [],
       status: "active",
@@ -2068,83 +2059,6 @@ function App() {
     } catch (err) {
       const msg = err?.message || "Failed to create folder";
       showAppError(msg, { title: "Create folder failed" });
-    }
-  };
-
-  /**
-   * Rename a case file (new stem); identity is preserved via UUID in YAML.
-   * Optimistic: patch catalog and selection immediately; no full reload on success.
-   */
-  const handleRenameCase = async (row, newCaseId) => {
-    const CASE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-    if (!activeRepoSlug || !row?.file_path) {
-      throw new Error("No active repository or case.");
-    }
-    const trimmed = (newCaseId || "").trim();
-    if (!CASE_ID_RE.test(trimmed)) {
-      throw new Error("Use only letters, numbers, underscores, and hyphens.");
-    }
-    const oldPath = row.file_path;
-    const newPath = computeRenamedCasePath(oldPath, trimmed);
-    if (newPath === oldPath) return;
-
-    const parentFolder = parentFolderOfCasePath(oldPath);
-    const [originalRow] = buildCaseSnapshotRows([oldPath], { row });
-    const snapshot = {
-      selectedCaseFilePath,
-      caseDetail,
-      originalRow,
-    };
-
-    suppressRefreshEvents();
-    renameCaseInCache(oldPath, newPath, trimmed);
-    const renamedRow = { ...originalRow, file_path: newPath, case_id: trimmed };
-    patchCaseListWindow({ remove: [oldPath], add: [renamedRow] });
-    resortCasesInFolder(parentFolder);
-    sortCaseListWindow();
-
-    const detailShowsRenamedCase =
-      selectedCaseFilePathRef.current === oldPath || caseDetail?.file_path === oldPath;
-    if (detailShowsRenamedCase) {
-      setSelectedCaseFilePath(newPath);
-      setCaseDetail((prev) =>
-        prev?.file_path === oldPath ? { ...prev, file_path: newPath, case_id: trimmed } : prev,
-      );
-    }
-
-    refreshRepoStatus();
-
-    const rollbackOptimistic = () => {
-      removeCasesFromCache([newPath]);
-      addCasesToCache([snapshot.originalRow]);
-      patchCaseListWindow({ remove: [newPath], add: [snapshot.originalRow] });
-      resortCasesInFolder(parentFolder);
-      sortCaseListWindow();
-      setSelectedCaseFilePath(snapshot.selectedCaseFilePath);
-      setCaseDetail(snapshot.caseDetail);
-      invalidateCaseListWindow();
-    };
-
-    try {
-      await renameCase(oldPath, trimmed, activeRepoSlug);
-      if (selectedCaseFilePathRef.current === newPath) {
-        try {
-          const detail = await getCaseDetail(newPath, activeRepoSlug);
-          if (selectedCaseFilePathRef.current === newPath) setCaseDetail(detail);
-        } catch (_) {
-          // keep optimistic case detail on error
-        }
-      }
-    } catch (err) {
-      rollbackOptimistic();
-      if (isApiConflictError(err)) {
-        throw new RenameNameConflictError(
-          getRenameConflictDisplayName({ kind: "case", newName: trimmed, filePath: oldPath }),
-        );
-      }
-      const msg = err?.message || "Failed to rename test case";
-      showAppError(msg, { title: "Rename failed" });
-      throw err;
     }
   };
 
@@ -3219,7 +3133,6 @@ function App() {
                 onRestoreFolder={handleRestoreFolder}
                 onRestoreCase={handleRestoreCase}
                 onDeleteCase={handleDeleteCase}
-                onRenameCase={handleRenameCase}
                 showCreateFormInPanel={showCreateFormInPanel}
                 onStartCreate={() => {
                   setContextTargetFolder(selectedFolderPath || null);
