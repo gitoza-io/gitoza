@@ -102,6 +102,6 @@ describe("commitInlineCaseCreate", () => {
     });
 
     await expect(result).rejects.toThrow();
-    expect(callbacks.setError).toHaveBeenCalledWith("Invalid case ID");
+    expect(callbacks.setError).toHaveBeenCalledWith("Failed to create test case");
   });
 });

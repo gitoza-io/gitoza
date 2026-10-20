@@ -33,7 +33,6 @@ import { actionExpectationTableSnippet } from "../utils/actionExpectationTable";
 import { formatWikiPageLink, formatWikiTicketLink } from "../utils/ticketLinks";
 import { isTauri } from "../utils/tauriEnv";
 
-const CASE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 const inputCls =
   "w-full rounded border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none ring-indigo-400 transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500";
 const selectCls =
@@ -217,9 +216,8 @@ function CaseEditorPanel({
     }
   }, [showCreateForm]);
 
-  const isValidId = caseId.trim().length > 0 && CASE_ID_RE.test(caseId.trim());
   const isValidTitle = title.trim().length > 0;
-  const canCreate = isValidId && isValidTitle && !loading;
+  const canCreate = isValidTitle && !loading;
 
   // --- Auto-save for edit mode ---
   const draft = useMemo(
@@ -562,7 +560,7 @@ function CaseEditorPanel({
     const tags = tagsStr.split(",").map((t) => t.trim()).filter(Boolean);
     try {
       await onCreate({
-        case_id: caseId.trim(),
+        case_id: "",
         title: title.trim(),
         priority,
         status,
@@ -621,16 +619,12 @@ function CaseEditorPanel({
     return (
       <DetailPanel title="New test case" onClose={onCancelCreate}>
         <form onSubmit={handleCreate} className="flex min-h-0 flex-1 flex-col overflow-y-auto py-3">
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label htmlFor="new-tc-id" className={labelCls}>Case ID *</label>
-              <input id="new-tc-id" type="text" value={caseId} onChange={(e) => { setCaseId(e.target.value); setError(""); }} placeholder="TC-001" className={inputCls} />
-              {caseId.trim() && !CASE_ID_RE.test(caseId.trim()) && <p className="mt-0.5 text-[11px] text-red-500">Invalid ID</p>}
-            </div>
-            <div className="col-span-2">
-              <label htmlFor="new-tc-title" className={labelCls}>Title *</label>
-              <input id="new-tc-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Login with valid credentials" className={inputCls} />
-            </div>
+          <div>
+            <label htmlFor="new-tc-title" className={labelCls}>Title *</label>
+            <input id="new-tc-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Login with valid credentials" className={inputCls} />
+            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+              Case ID is assigned automatically when you create.
+            </p>
           </div>
           <div className="mt-2">
             <label htmlFor="new-tc-priority" className={labelCls}>Priority</label>

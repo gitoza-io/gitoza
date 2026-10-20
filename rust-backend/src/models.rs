@@ -819,6 +819,8 @@ pub struct CreateProjectResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTestCaseRequest {
+    /// Empty → backend mints `{case_prefix}-{6}` for the test project.
+    #[serde(default)]
     pub case_id: String,
     pub title: String,
     #[serde(default = "default_medium_priority")]

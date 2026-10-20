@@ -1,19 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Archive, FilePlus2, Pencil, Trash2 } from "lucide-react";
+import { Archive, Trash2 } from "lucide-react";
 import CaseDragPortal from "./CaseDragPortal";
 import CaseListPagination from "./CaseListPagination";
 import CaseListEntriesBody from "./CaseListEntriesBody";
 import CaseListRow from "./CaseListRow";
 import ContextMenu from "./ContextMenu";
-import InlineRenameInput from "./InlineRenameInput";
 import RepositoryCaseListHeader from "./RepositoryCaseListHeader";
 import { isArchivedCasePath } from "../constants/casePaths";
 import { REPOSITORY_CASE_PAGE_SIZE } from "../constants/repositoryCaseList";
 import { useCasePointerDrag } from "../hooks/useCasePointerDrag";
 import { useCaseRowSelection } from "../hooks/useCaseRowSelection";
-import { getCasesInGroupedOrder, isProjectDirectoryPath } from "../utils/caseTree";
-import { computeRenamedCasePath, buildCaseActionPayload } from "../utils/caseCatalogMove";
-import { isCaseInRenameSession, isRenameNameConflictError } from "../utils/renameConflict";
+import { getCasesInGroupedOrder } from "../utils/caseTree";
+import { buildCaseActionPayload } from "../utils/caseCatalogMove";
 import { paginateGroupedCaseListEntries, paginateList } from "../utils/paginateList";
 import { browseColumnNoSelect, flexFillScroll } from "../utils/layoutClasses";
 import {
@@ -44,11 +42,7 @@ function RepositoryPaginatedCaseList({
   onArchiveCase,
   onRestoreCase,
   onDeleteCase,
-  onRenameCase,
-  creatingCaseInPath = null,
   creatingCaseError = null,
-  onCommitInlineCase,
-  onClearCreatingCase,
   onNewCase,
   dragProps = null,
   pickerMode = false,
@@ -59,8 +53,6 @@ function RepositoryPaginatedCaseList({
   isRowDeleted,
 }) {
   const [contextMenu, setContextMenu] = useState(null);
-  const [renamingCaseSession, setRenamingCaseSession] = useState(null);
-  const [renameCaseConflict, setRenameCaseConflict] = useState(null);
 
   const multiSelectActive = Boolean(caseSelectionConfig) && !editorLocked && !pickerMode;
   const groupedMode = listEntries != null;
@@ -130,35 +122,6 @@ function RepositoryPaginatedCaseList({
     };
   }, [contextMenu]);
 
-  const handleCaseRenameCommit = useCallback(
-    async (caseRow, newName) => {
-      if (newName == null) {
-        setRenamingCaseSession(null);
-        setRenameCaseConflict(null);
-        return;
-      }
-      if (!onRenameCase) return;
-      const sourcePath = caseRow.file_path;
-      const targetPath = computeRenamedCasePath(sourcePath, newName);
-      setRenamingCaseSession({ sourcePath, targetPath });
-      setRenameCaseConflict(null);
-      try {
-        await onRenameCase(caseRow, newName);
-        setRenamingCaseSession(null);
-        setRenameCaseConflict(null);
-      } catch (err) {
-        if (isRenameNameConflictError(err)) {
-          setRenameCaseConflict({ sourcePath, displayName: err.displayName });
-          setRenamingCaseSession({ sourcePath, targetPath: null });
-          return;
-        }
-        setRenamingCaseSession(null);
-        setRenameCaseConflict(null);
-      }
-    },
-    [onRenameCase],
-  );
-
   const contextMenuItems = useMemo(() => {
     if (!contextMenu?.case || editorLocked) return [];
     const c = contextMenu.case;
@@ -196,23 +159,7 @@ function RepositoryPaginatedCaseList({
       return items;
     }
 
-    const renameEnabled =
-      !multiSelectActive ||
-      !caseSelectionConfig?.selectedPaths ||
-      caseSelectionConfig.selectedPaths.size <= 1;
-    if (onRenameCase && renameEnabled) {
-      items.push({
-        icon: Pencil,
-        label: "Rename",
-        onClick: () => {
-          setRenamingCaseSession({ sourcePath: c.file_path, targetPath: null });
-          setRenameCaseConflict(null);
-          setContextMenu(null);
-        },
-      });
-    }
     if (onArchiveCase) {
-      if (items.length > 0) items.push({ type: "separator" });
       items.push({
         icon: Archive,
         label: `Archive${bulkSuffix}`,
@@ -230,18 +177,12 @@ function RepositoryPaginatedCaseList({
     getSelectedActionPaths,
     onRestoreCase,
     onDeleteCase,
-    onRenameCase,
     onArchiveCase,
-    multiSelectActive,
-    caseSelectionConfig,
+    displayCases,
   ]);
 
-  const showCreatingCase =
-    creatingCaseInPath && folderPath && creatingCaseInPath === folderPath && onCommitInlineCase;
-
   const hasListContent = folderPath || !showNoFolderWhenEmpty;
-  const showEmpty =
-    !hasListContent || (displayCases.length === 0 && !showCreatingCase && !loading);
+  const showEmpty = !hasListContent || (displayCases.length === 0 && !loading);
 
   const pickerSelectionLabel = useMemo(() => {
     if (!pickerMode || displayCases.length === 0) return null;
@@ -261,11 +202,6 @@ function RepositoryPaginatedCaseList({
         : multiSelectActive
           ? Boolean(inMultiSet)
           : selectedCaseFilePath === c.file_path;
-      const isRenamingCase = isCaseInRenameSession(c.file_path, renamingCaseSession);
-      const renameConflictName =
-        isRenamingCase && renameCaseConflict?.sourcePath === renamingCaseSession?.sourcePath
-          ? renameCaseConflict.displayName
-          : null;
       const dragPaths =
         multiSelectActive &&
         caseSelectionConfig?.selectedPaths?.has(c.file_path) &&
@@ -280,14 +216,10 @@ function RepositoryPaginatedCaseList({
           caseRow={c}
           multiSelectActive={multiSelectActive}
           isSelected={isSelected}
-          isRenamingCase={isRenamingCase}
           dragPaths={dragPaths}
           isDragSource={isDragSource}
           onCaseRowClick={handleCaseRowClick}
           onSelectCase={onSelectCase}
-          onCaseRenameCommit={handleCaseRenameCommit}
-          onCaseRenameValueChange={() => setRenameCaseConflict(null)}
-          renameConflictName={renameConflictName}
           onContextMenuCase={
             pickerMode
               ? undefined
@@ -313,12 +245,9 @@ function RepositoryPaginatedCaseList({
       pickerMode,
       selectedCaseFilePath,
       multiSelectActive,
-      renamingCaseSession,
-      renameCaseConflict,
       draggingSourcePaths,
       handleCaseRowClick,
       onSelectCase,
-      handleCaseRenameCommit,
       prepareContextMenuSelection,
       handleCaseRowPointerDown,
       selectedFilePaths,
@@ -338,6 +267,11 @@ function RepositoryPaginatedCaseList({
         onNewCase={pickerMode ? undefined : onNewCase}
         newCaseDisabled={!folderPath || editorLocked}
       />
+      {creatingCaseError ? (
+        <p className="px-2 text-xs text-red-600 dark:text-red-400" role="alert">
+          {creatingCaseError}
+        </p>
+      ) : null}
       <div className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden ${flexFillScroll} ${browseColumnNoSelect}`}>
         {showEmpty ? (
           <div className="px-2 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -349,33 +283,6 @@ function RepositoryPaginatedCaseList({
           </div>
         ) : (
           <ul className="space-y-0 px-1 py-1">
-            {showCreatingCase ? (
-              <li>
-                <div className="flex min-w-0 flex-col gap-0.5 py-1.5">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <FilePlus2 className="h-4 w-4 shrink-0 text-emerald-500 dark:text-emerald-400" />
-                    <InlineRenameInput
-                      initialValue=""
-                      placeholder="Case ID (filename)…"
-                      onCommit={(val) => {
-                        const p = onCommitInlineCase(
-                          folderPath,
-                          isProjectDirectoryPath(folderPath),
-                          val,
-                        );
-                        if (p && typeof p.then === "function") p.catch(() => {});
-                        if (val == null) onClearCreatingCase?.();
-                      }}
-                    />
-                  </div>
-                  {creatingCaseError ? (
-                    <p className="text-xs text-red-600 dark:text-red-400" role="alert">
-                      {creatingCaseError}
-                    </p>
-                  ) : null}
-                </div>
-              </li>
-            ) : null}
             {groupedMode && pagination.entries ? (
               <CaseListEntriesBody entries={pagination.entries} renderCaseRow={renderCaseRow} />
             ) : (

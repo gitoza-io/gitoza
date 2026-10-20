@@ -406,6 +406,7 @@ export const archiveFolder = (directoryPath, reason, repoSlug = null) =>
 export const deleteCase = (filePath, repoSlug = null) =>
   invoke("delete_case", { filePath, repo: repoSlug || null });
 
+/** @deprecated Case IDs are immutable in the app; IPC always rejects. */
 export const renameCase = (filePath, newCaseId, repoSlug = null) =>
   invoke("rename_case", {
     payload: {

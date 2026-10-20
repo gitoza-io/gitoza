@@ -19,6 +19,7 @@ pub mod automation_index;
 pub mod automation_paths;
 pub mod automation_remote;
 pub mod case_breakdown;
+pub(crate) mod case_ids;
 pub(crate) mod clone_service;
 pub mod error;
 pub(crate) mod file_truth_framework;

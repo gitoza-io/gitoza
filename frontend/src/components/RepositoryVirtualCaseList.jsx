@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Archive, FilePlus2, Pencil, Trash2 } from "lucide-react";
+import { Archive, Trash2 } from "lucide-react";
 import CaseDragPortal from "./CaseDragPortal";
 import CaseListRow from "./CaseListRow";
 import ContextMenu from "./ContextMenu";
-import InlineRenameInput from "./InlineRenameInput";
 import RepositoryCaseListHeader from "./RepositoryCaseListHeader";
 import { isArchivedCasePath } from "../constants/casePaths";
 import {
@@ -14,9 +13,7 @@ import {
 } from "../constants/virtualCaseList";
 import { useCasePointerDrag } from "../hooks/useCasePointerDrag";
 import { useCaseRowSelection } from "../hooks/useCaseRowSelection";
-import { isProjectDirectoryPath } from "../utils/caseTree";
-import { computeRenamedCasePath, buildCaseActionPayload } from "../utils/caseCatalogMove";
-import { isCaseInRenameSession, isRenameNameConflictError } from "../utils/renameConflict";
+import { buildCaseActionPayload } from "../utils/caseCatalogMove";
 import { browseColumnNoSelect, flexFillScroll } from "../utils/layoutClasses";
 import {
   countSelectedUnderDirectory,
@@ -47,11 +44,7 @@ function RepositoryVirtualCaseList({
   onArchiveCase,
   onRestoreCase,
   onDeleteCase,
-  onRenameCase,
-  creatingCaseInPath = null,
   creatingCaseError = null,
-  onCommitInlineCase,
-  onClearCreatingCase,
   onNewCase,
   dragProps = null,
   pickerMode = false,
@@ -64,8 +57,6 @@ function RepositoryVirtualCaseList({
   const scrollRef = useRef(null);
   const loadMoreLockRef = useRef(false);
   const [contextMenu, setContextMenu] = useState(null);
-  const [renamingCaseSession, setRenamingCaseSession] = useState(null);
-  const [renameCaseConflict, setRenameCaseConflict] = useState(null);
 
   const multiSelectActive = Boolean(caseSelectionConfig) && !editorLocked && !pickerMode;
   const displayCases = cases;
@@ -157,35 +148,6 @@ function RepositoryVirtualCaseList({
     };
   }, [contextMenu]);
 
-  const handleCaseRenameCommit = useCallback(
-    async (caseRow, newName) => {
-      if (newName == null) {
-        setRenamingCaseSession(null);
-        setRenameCaseConflict(null);
-        return;
-      }
-      if (!onRenameCase) return;
-      const sourcePath = caseRow.file_path;
-      const targetPath = computeRenamedCasePath(sourcePath, newName);
-      setRenamingCaseSession({ sourcePath, targetPath });
-      setRenameCaseConflict(null);
-      try {
-        await onRenameCase(caseRow, newName);
-        setRenamingCaseSession(null);
-        setRenameCaseConflict(null);
-      } catch (err) {
-        if (isRenameNameConflictError(err)) {
-          setRenameCaseConflict({ sourcePath, displayName: err.displayName });
-          setRenamingCaseSession({ sourcePath, targetPath: null });
-          return;
-        }
-        setRenamingCaseSession(null);
-        setRenameCaseConflict(null);
-      }
-    },
-    [onRenameCase],
-  );
-
   const contextMenuItems = useMemo(() => {
     if (!contextMenu?.case || editorLocked) return [];
     const c = contextMenu.case;
@@ -223,23 +185,7 @@ function RepositoryVirtualCaseList({
       return items;
     }
 
-    const renameEnabled =
-      !multiSelectActive ||
-      !caseSelectionConfig?.selectedPaths ||
-      caseSelectionConfig.selectedPaths.size <= 1;
-    if (onRenameCase && renameEnabled) {
-      items.push({
-        icon: Pencil,
-        label: "Rename",
-        onClick: () => {
-          setRenamingCaseSession({ sourcePath: c.file_path, targetPath: null });
-          setRenameCaseConflict(null);
-          setContextMenu(null);
-        },
-      });
-    }
     if (onArchiveCase) {
-      if (items.length > 0) items.push({ type: "separator" });
       items.push({
         icon: Archive,
         label: `Archive${bulkSuffix}`,
@@ -257,18 +203,12 @@ function RepositoryVirtualCaseList({
     getSelectedActionPaths,
     onRestoreCase,
     onDeleteCase,
-    onRenameCase,
     onArchiveCase,
-    multiSelectActive,
-    caseSelectionConfig,
+    displayCases,
   ]);
 
-  const showCreatingCase =
-    creatingCaseInPath && folderPath && creatingCaseInPath === folderPath && onCommitInlineCase;
-
   const hasListContent = folderPath || !showNoFolderWhenEmpty;
-  const showEmpty =
-    !hasListContent || (displayCases.length === 0 && !showCreatingCase && !loading);
+  const showEmpty = !hasListContent || (displayCases.length === 0 && !loading);
 
   const pickerSelectionLabel = useMemo(() => {
     if (!pickerMode || displayCases.length === 0) return null;
@@ -288,11 +228,6 @@ function RepositoryVirtualCaseList({
         : multiSelectActive
           ? Boolean(inMultiSet)
           : selectedCaseFilePath === c.file_path;
-      const isRenamingCase = isCaseInRenameSession(c.file_path, renamingCaseSession);
-      const renameConflictName =
-        isRenamingCase && renameCaseConflict?.sourcePath === renamingCaseSession?.sourcePath
-          ? renameCaseConflict.displayName
-          : null;
       const dragPaths =
         multiSelectActive &&
         caseSelectionConfig?.selectedPaths?.has(c.file_path) &&
@@ -307,14 +242,10 @@ function RepositoryVirtualCaseList({
           caseRow={c}
           multiSelectActive={multiSelectActive}
           isSelected={isSelected}
-          isRenamingCase={isRenamingCase}
           dragPaths={dragPaths}
           isDragSource={isDragSource}
           onCaseRowClick={handleCaseRowClick}
           onSelectCase={onSelectCase}
-          onCaseRenameCommit={handleCaseRenameCommit}
-          onCaseRenameValueChange={() => setRenameCaseConflict(null)}
-          renameConflictName={renameConflictName}
           onContextMenuCase={
             pickerMode
               ? undefined
@@ -340,12 +271,9 @@ function RepositoryVirtualCaseList({
       pickerMode,
       selectedCaseFilePath,
       multiSelectActive,
-      renamingCaseSession,
-      renameCaseConflict,
       draggingSourcePaths,
       handleCaseRowClick,
       onSelectCase,
-      handleCaseRenameCommit,
       prepareContextMenuSelection,
       handleCaseRowPointerDown,
       selectedFilePaths,
@@ -356,34 +284,6 @@ function RepositoryVirtualCaseList({
     ],
   );
 
-  const creatingCaseRow = showCreatingCase ? (
-    <div className="px-1 py-1">
-      <div className="flex min-w-0 flex-col gap-0.5 py-1.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <FilePlus2 className="h-4 w-4 shrink-0 text-emerald-500 dark:text-emerald-400" />
-          <InlineRenameInput
-            initialValue=""
-            placeholder="Case ID (filename)…"
-            onCommit={(val) => {
-              const p = onCommitInlineCase(
-                folderPath,
-                isProjectDirectoryPath(folderPath),
-                val,
-              );
-              if (p && typeof p.then === "function") p.catch(() => {});
-              if (val == null) onClearCreatingCase?.();
-            }}
-          />
-        </div>
-        {creatingCaseError ? (
-          <p className="text-xs text-red-600 dark:text-red-400" role="alert">
-            {creatingCaseError}
-          </p>
-        ) : null}
-      </div>
-    </div>
-  ) : null;
-
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <RepositoryCaseListHeader
@@ -393,6 +293,11 @@ function RepositoryVirtualCaseList({
         onNewCase={pickerMode ? undefined : onNewCase}
         newCaseDisabled={!folderPath || editorLocked}
       />
+      {creatingCaseError ? (
+        <p className="px-2 text-xs text-red-600 dark:text-red-400" role="alert">
+          {creatingCaseError}
+        </p>
+      ) : null}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
@@ -408,7 +313,6 @@ function RepositoryVirtualCaseList({
           </div>
         ) : (
           <>
-            {creatingCaseRow}
             {shouldVirtualize ? (
               <div
                 className="relative w-full px-1 py-1"

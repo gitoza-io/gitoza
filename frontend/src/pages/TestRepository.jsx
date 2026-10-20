@@ -4,6 +4,7 @@ import {
   collectPathKeyForFolderPath,
   findFolderNode,
   getParentDirectoryPath,
+  isProjectDirectoryPath,
 } from "../utils/caseTree";
 import { isArchivedDirectoryPath } from "../constants/casePaths";
 import CaseEditorPanel from "../components/CaseEditorPanel";
@@ -71,7 +72,6 @@ function TestRepository({
   onRestoreFolder,
   onRestoreCase,
   onDeleteCase,
-  onRenameCase,
   showCreateFormInPanel,
   onStartCreate,
   onCancelCreate,
@@ -568,11 +568,23 @@ function TestRepository({
 
   const handleStartCreatingCase = useCallback(
     (path) => {
-      setCreatingCaseInPath(path);
+      if (!path || !onCommitInlineCase) return;
+      setCreatingCaseInPath(null);
       setCreatingCaseError(null);
       handleSelectBrowseFolder(path);
+      const isProject = isProjectDirectoryPath(path);
+      void commitInlineCaseCreate({
+        path,
+        isProject,
+        caseId: "",
+        onCommitInlineCase,
+        clearCreating: () => setCreatingCaseInPath(null),
+        restoreCreating: () => {},
+        setError: setCreatingCaseError,
+        clearError: () => setCreatingCaseError(null),
+      })?.catch?.(() => {});
     },
-    [handleSelectBrowseFolder],
+    [handleSelectBrowseFolder, onCommitInlineCase],
   );
 
   const handleCommitInlineCase = useCallback(
@@ -580,10 +592,10 @@ function TestRepository({
       commitInlineCaseCreate({
         path,
         isProject,
-        caseId,
+        caseId: caseId ?? "",
         onCommitInlineCase,
         clearCreating: () => setCreatingCaseInPath(null),
-        restoreCreating: setCreatingCaseInPath,
+        restoreCreating: () => {},
         setError: setCreatingCaseError,
         clearError: () => setCreatingCaseError(null),
       }),
@@ -752,7 +764,6 @@ function TestRepository({
       onArchiveCase={onArchiveCase}
       onRestoreCase={onRestoreCase}
       onDeleteCase={onDeleteCase}
-      onRenameCase={onRenameCase}
       emptyMessage={
         activeSearchChips?.length ? "No matching cases found." : "Apply a filter to see results."
       }
@@ -765,14 +776,12 @@ function TestRepository({
       caseSelectionConfig={browseSelectionConfig}
       onArchiveCase={editorLocked ? undefined : onArchiveCase}
       onRestoreCase={editorLocked ? undefined : onRestoreCase}
-      onRenameCase={editorLocked ? undefined : onRenameCase}
-      creatingCaseInPath={creatingCaseInPath}
       creatingCaseError={creatingCaseError}
-      onCommitInlineCase={editorLocked ? undefined : handleCommitInlineCase}
-      onClearCreatingCase={() => {
-        setCreatingCaseInPath(null);
-        setCreatingCaseError(null);
-      }}
+      onNewCase={
+        editorLocked || !selectedFolderPath
+          ? undefined
+          : () => handleStartCreatingCase(selectedFolderPath)
+      }
       dragProps={{
         pointerDragUI: browseDrag.pointerDragUI,
         draggingSourcePaths: browseDrag.draggingSourcePaths,

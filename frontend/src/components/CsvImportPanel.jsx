@@ -198,7 +198,8 @@ function CsvImportPanel({
   }, [directory, projects]);
 
   const canProceedToPreview = useMemo(() => {
-    if (!caseIdColumn || !titleColumn || caseIdColumn === titleColumn) return false;
+    if (!titleColumn) return false;
+    if (caseIdColumn && caseIdColumn === titleColumn) return false;
     const singles = [caseIdColumn, titleColumn, priorityColumn, requirementIdColumn, automatedColumn, suitePathColumn].filter(Boolean);
     if (singles.length !== new Set(singles).size) return false;
     const singleSet = new Set(singles);
@@ -419,8 +420,8 @@ function CsvImportPanel({
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto space-y-4">
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Upload a CSV file. The file is read in chunks (large exports such as Xray stay memory-efficient). The first row
-            must be headers. Map each target field to a CSV column: <strong>Case ID</strong> and <strong>Title</strong> are
-            required; you can optionally map priority, requirement ID, one or more tag columns, and one or more body columns
+            must be headers. Map each target field to a CSV column: <strong>Title</strong> is required; <strong>Case ID</strong> is
+            optional (blank cells get an auto-assigned id). You can also map priority, requirement ID, tags, and body columns
             (merged as Markdown with bold column titles). Any column you do not map is appended to the case body as a raw
             field table.
           </p>
@@ -498,7 +499,7 @@ function CsvImportPanel({
       <DetailPanel title="Import test cases (CSV)" bodyScroll={false}>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto main-content-scroll space-y-4 py-0">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Map each target field to a column from your CSV. Case ID and Title are required and must use{" "}
+            Map each target field to a column from your CSV. Title is required. Case ID is optional (blank cells get an auto id) and must use{" "}
             <strong>different</strong> columns. Tags and body support multiple columns (mutually exclusive per column). Tag
             cells are split by comma or semicolon. Body columns are written in order.
           </p>
@@ -520,7 +521,7 @@ function CsvImportPanel({
             <div className="divide-y divide-slate-200 bg-white dark:divide-slate-700 dark:bg-slate-950">
               <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-center gap-2 px-3 py-2.5">
                 <label htmlFor="csv-case-id" className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                  Case ID <span className="text-red-500">*</span>
+                  Case ID <span className="text-slate-400">(optional)</span>
                 </label>
                 <div className="min-w-0">
                   <select

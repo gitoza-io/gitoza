@@ -1,6 +1,6 @@
 /**
- * Handles inline case create commit: dismisses the input immediately (like suite create),
- * then restores it with an error message if the async create fails.
+ * Handles case create commit (auto-minted id). Dismisses any draft UI immediately;
+ * on failure sets an error (optional restoreCreating for legacy inline ID UI).
  *
  * @param {{
  *   path: string,
@@ -34,8 +34,8 @@ export function commitInlineCaseCreate({
   const result = onCommitInlineCase(path, isProject, caseId);
   if (result && typeof result.then === "function") {
     return result.catch((err) => {
-      restoreCreating(path);
-      setError(err?.message || "Invalid case ID");
+      restoreCreating?.(path);
+      setError(err?.message || "Failed to create test case");
       throw err;
     });
   }

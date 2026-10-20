@@ -47,7 +47,7 @@ function collectCaseFilePaths(node) {
 
 /**
  * Obsidian-style tree: level 1 = projects, level 2 = suites, level 3 = cases (by title, no file names).
- * Click case → onSelectCase(row). Context menu: folders (New Case / Suite / Rename / Delete); cases (Rename / Archive or Restore / Delete).
+ * Click case → onSelectCase(row). Context menu: folders (New Case / Suite / Rename / Delete); cases (Archive or Restore / Delete).
  * When pickerMode: show checkboxes on projects, suites, and cases; selectedFilePaths (Set), onToggleCase,
  * onToggleSuite(node) => Promise<void>, onToggleProject.
  *
@@ -82,7 +82,7 @@ function CaseTree({
   creatingCaseInPath: creatingCaseInPathProp,
   /** Error under the inline create input (controlled when parent owns creatingCaseInPath). */
   creatingCaseError: creatingCaseErrorProp,
-  creatingCasePlaceholder = "Case ID (filename)…",
+  creatingCasePlaceholder = "Creating…",
   /** Context-menu New item: parent starts inline create for this folder path. */
   onStartCreatingCase,
   /** When true, show inline "new project" row at root. onCommitInlineProject(name) on commit, null on cancel. */
@@ -416,6 +416,7 @@ function CaseTree({
 
   const handleContextNewCase = () => {
     const path = contextMenu?.node?.directory_path;
+    const isProject = contextMenu?.node?.is_project === true;
     if (!path) {
       setContextMenu(null);
       return;
@@ -426,10 +427,15 @@ function CaseTree({
       return;
     }
     if (onCommitInlineCase) {
-      setInternalCreatingCaseInPath(path);
       setInternalCreatingCaseError(null);
       const pathKey = path.replace(/^\.gitoza\/test\/cases\/?/, "") || contextMenu.node.name;
       setExpanded((prev) => new Set([...prev, pathKey]));
+      const p = onCommitInlineCase(path, isProject, "");
+      if (p && typeof p.then === "function") {
+        p.catch((err) => {
+          setInternalCreatingCaseError(err?.message || "Failed to create test case");
+        });
+      }
     } else {
       onContextCreateTestCase?.(path);
     }
@@ -580,22 +586,7 @@ function CaseTree({
           });
         }
       } else {
-        const renameEnabled = !multiSelectActive || !caseSelectionConfig?.selectedPaths || caseSelectionConfig.selectedPaths.size <= 1;
-        if (onRenameCase && renameEnabled) {
-          contextMenuItems.push({
-            icon: Pencil,
-            label: "Rename",
-            onClick: () => {
-              setRenamingCaseSession({ sourcePath: c.file_path, targetPath: null });
-              setRenameCaseConflict(null);
-              setContextMenu(null);
-            },
-          });
-        }
         if (onArchiveCase) {
-          if (contextMenuItems.length > 0) {
-            contextMenuItems.push({ type: "separator" });
-          }
           contextMenuItems.push({
             icon: Archive,
             label: `Archive${bulkSuffix}`,
@@ -869,7 +860,7 @@ function TreeNode({
   onCreateFolderCommit,
   creatingCaseInPath,
   creatingCaseError,
-  creatingCasePlaceholder = "Case ID (filename)…",
+  creatingCasePlaceholder = "Creating…",
   onCommitInlineCase,
   pickerMode,
   selectedFilePaths,
